@@ -27,17 +27,17 @@ export default function SpacePickerModal( { onSelect, onRequestClose } ) {
 	const [ query, setQuery ] = useState( '' );
 	const [ spaces, setSpaces ] = useState( [] );
 	const [ isLoading, setIsLoading ] = useState( true );
+	const [ reloadKey, setReloadKey ] = useState( 0 );
 	const [ pickingId, setPickingId ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 
 	const updateQuery = useDebounce( setQuery, 300 );
-	const onConnected = useCallback( () => setIsConnected( true ), [] );
+	const onConnected = useCallback( () => {
+		setIsConnected( true );
+		setReloadKey( ( key ) => key + 1 );
+	}, [] );
 
 	useEffect( () => {
-		if ( isConnected === false ) {
-			return undefined;
-		}
-
 		let isActive = true;
 		setIsLoading( true );
 		setError( '' );
@@ -81,7 +81,7 @@ export default function SpacePickerModal( { onSelect, onRequestClose } ) {
 		return () => {
 			isActive = false;
 		};
-	}, [ query, isConnected ] );
+	}, [ query, reloadKey ] );
 
 	const pick = async ( space ) => {
 		setError( '' );
@@ -102,7 +102,9 @@ export default function SpacePickerModal( { onSelect, onRequestClose } ) {
 	};
 
 	let content;
-	if ( isConnected === false ) {
+	if ( isConnected === null ) {
+		content = <Spinner />;
+	} else if ( isConnected === false ) {
 		content = <Connect onConnected={ onConnected } />;
 	} else {
 		content = (

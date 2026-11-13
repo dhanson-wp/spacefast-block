@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { useRef, useState } from '@wordpress/element';
 import {
 	Button,
+	Flex,
 	Notice,
 	Placeholder,
 	TextControl,
@@ -68,46 +69,53 @@ export default function SpacePlaceholder( { onApply } ) {
 					resolve( link );
 				} }
 			>
-				<TextControl
-					__next40pxDefaultSize
-					__nextHasNoMarginBottom
-					label={ __( 'Space link', 'spacefast-block' ) }
-					type="url"
-					value={ link }
-					onChange={ setLink }
-					onPaste={ ( event ) => {
-						const pasted = event.clipboardData.getData( 'text' );
-						if ( looksLikeUrl( pasted ) ) {
-							event.preventDefault();
-							setLink( pasted.trim() );
-							resolve( pasted );
-						}
-					} }
-				/>
-				{ error && (
-					<Notice status="error" isDismissible={ false }>
-						{ error }
-					</Notice>
-				) }
-				<div className="spacefast-placeholder-actions">
-					<Button
-						variant="primary"
-						type="submit"
+				<Flex direction="column" gap={ 4 }>
+					<TextControl
 						__next40pxDefaultSize
-						isBusy={ isResolving }
-						disabled={ isResolving }
-						accessibleWhenDisabled
-					>
-						{ __( 'Show Space', 'spacefast-block' ) }
-					</Button>
-					<Button
-						variant="secondary"
-						__next40pxDefaultSize
-						onClick={ () => setIsPickerOpen( true ) }
-					>
-						{ __( 'Choose a Space', 'spacefast-block' ) }
-					</Button>
-				</div>
+						__nextHasNoMarginBottom
+						label={ __( 'Space link', 'spacefast-block' ) }
+						type="text"
+						inputMode="url"
+						value={ link }
+						onChange={ ( value ) => {
+							setLink( value );
+							setError( '' );
+						} }
+						onPaste={ ( event ) => {
+							const pasted =
+								event.clipboardData.getData( 'text' );
+							if ( looksLikeUrl( pasted ) ) {
+								event.preventDefault();
+								setLink( pasted.trim() );
+								resolve( pasted );
+							}
+						} }
+					/>
+					{ error && (
+						<Notice status="error" isDismissible={ false }>
+							{ error }
+						</Notice>
+					) }
+					<Flex justify="flex-start" gap={ 2 }>
+						<Button
+							variant="primary"
+							type="submit"
+							__next40pxDefaultSize
+							isBusy={ isResolving }
+							disabled={ isResolving }
+							accessibleWhenDisabled
+						>
+							{ __( 'Show Space', 'spacefast-block' ) }
+						</Button>
+						<Button
+							variant="secondary"
+							__next40pxDefaultSize
+							onClick={ () => setIsPickerOpen( true ) }
+						>
+							{ __( 'Choose a Space', 'spacefast-block' ) }
+						</Button>
+					</Flex>
+				</Flex>
 			</form>
 			{ isPickerOpen && (
 				<SpacePickerModal
