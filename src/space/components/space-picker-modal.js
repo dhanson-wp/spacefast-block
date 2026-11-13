@@ -13,6 +13,7 @@ import {
 
 import Connect from './connect';
 import { getErrorMessage, resolveSpace, searchSpaces } from '../utils/api';
+import { getPickerView } from '../utils/picker-view';
 
 /**
  * Modal for choosing one of the connected account's Spaces.
@@ -101,10 +102,29 @@ export default function SpacePickerModal( { onSelect, onRequestClose } ) {
 		}
 	};
 
+	const view = getPickerView( { isConnected, isLoading, error } );
+
 	let content;
-	if ( isConnected === null ) {
+	if ( view === 'loading' ) {
 		content = <Spinner />;
-	} else if ( isConnected === false ) {
+	} else if ( view === 'error' ) {
+		content = (
+			<Flex direction="column" gap={ 4 }>
+				<Notice status="error" isDismissible={ false }>
+					{ error }
+				</Notice>
+				<div>
+					<Button
+						variant="secondary"
+						__next40pxDefaultSize
+						onClick={ () => setReloadKey( ( key ) => key + 1 ) }
+					>
+						{ __( 'Try again', 'spacefast-block' ) }
+					</Button>
+				</div>
+			</Flex>
+		);
+	} else if ( view === 'connect' ) {
 		content = <Connect onConnected={ onConnected } />;
 	} else {
 		content = (
