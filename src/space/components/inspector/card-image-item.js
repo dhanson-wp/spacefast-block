@@ -1,0 +1,123 @@
+import { __ } from '@wordpress/i18n';
+import { useState } from '@wordpress/element';
+import { useDispatch, useSelect } from '@wordpress/data';
+import {
+	BaseControl,
+	Button,
+	Flex,
+	__experimentalToolsPanelItem as ToolsPanelItem,
+} from '@wordpress/components';
+import { MediaUpload, MediaUploadCheck } from '@wordpress/block-editor';
+import { store as noticesStore } from '@wordpress/notices';
+
+import { getErrorMessage, sideloadImage } from '../../utils/api';
+import { getSideloadRequest } from '../../utils/display';
+
+/**
+ * The card image controls: replace it from the media library, copy the
+ * Space's own image into the media library, or go back to the Space's image.
+ *
+ * @param {Object}                 props               Component props.
+ * @param {Object}                 props.attributes    Block attributes.
+ * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {() => void}             props.onResetImage  Puts the Space's own image back.
+ * @param {boolean}                props.isRefreshing  Whether the Space's details are being fetched.
+ */
+export default function CardImageItem( {
+	attributes,
+	setAttributes,
+	onResetImage,
+	isRefreshing,
+} ) {
+	const { imageId, isPrivate } = attributes;
+	const [ isUploading, setIsUploading ] = useState( false );
+	const { createSuccessNotice, createErrorNotice } =
+		useDispatch( noticesStore );
+	const postId = useSelect(
+		( select ) => select( 'core/editor' )?.getCurrentPostId?.() || 0,
+		[]
+	);
+	const sideloadRequest = getSideloadRequest( attributes );
+
+	const upload = async () => {
+		setIsUploading( true );
+		try {
+			const media = await sideloadImage( sideloadRequest, postId );
+			setAttributes( { imageId: media.id, imageUrl: media.url } );
+			createSuccessNotice( __( 'Image uploaded.', 'spacefast-block' ), {
+				type: 'snackbar',
+			} );
+		} catch ( error ) {
+			createErrorNotice( getErrorMessage( error ), { type: 'snackbar' } );
+		}
+		setIsUploading( false );
+	};
+
+	return (
+		<ToolsPanelItem
+			label={ __( 'Image', 'spacefast-block' ) }
+			hasValue={ () => !! imageId }
+			onDeselect={ onResetImage }
+			isShownByDefault
+		>
+			<BaseControl.VisualLabel>
+				{ __( 'Image', 'spacefast-block' ) }
+			</BaseControl.VisualLabel>
+			<Flex justify="flex-start" wrap>
+				<MediaUploadCheck>
+					<MediaUpload
+						allowedTypes={ [ 'image' ] }
+						value={ imageId || undefined }
+						onSelect={ ( media ) =>
+							setAttributes( {
+								imageId: media.id,
+								imageUrl: media.url,
+							} )
+						}
+						render={ ( { open } ) => (
+							<Button
+								variant="secondary"
+								__next40pxDefaultSize
+								onClick={ open }
+							>
+								{ __( 'Replace', 'spacefast-block' ) }
+							</Button>
+						) }
+					/>
+					{ sideloadRequest && (
+						<Button
+							variant="secondary"
+							__next40pxDefaultSize
+							isBusy={ isUploading }
+							disabled={ isUploading }
+							accessibleWhenDisabled
+							onClick={ upload }
+						>
+							{ isPrivate
+								? __(
+										'Upload preview to media library',
+										'spacefast-block'
+									)
+								: __(
+										'Upload to media library',
+										'spacefast-block'
+									) }
+						</Button>
+					) }
+				</MediaUploadCheck>
+				{ !! imageId && (
+					<Button
+						variant="tertiary"
+						__next40pxDefaultSize
+						isBusy={ isRefreshing }
+						disabled={ isRefreshing }
+						accessibleWhenDisabled
+						onClick={ onResetImage }
+					>
+						{ __( 'Reset', 'spacefast-block' ) }
+					</Button>
+				) }
+			</Flex>
+		</ToolsPanelItem>
+	);
+}

@@ -20,14 +20,18 @@ export function getErrorMessage( error ) {
 /**
  * Fetches a link once and reports what it is.
  *
- * @param {string} url     Link to check.
- * @param {string} spaceId Space ID, when it came from the account search.
+ * @param {string}  url     Link to check.
+ * @param {string}  spaceId Space ID, when it came from the account search.
+ * @param {boolean} refresh Skip the server's cache and fetch the link again.
  * @return {Promise<Object>} Space details.
  */
-export function resolveSpace( url, spaceId = '' ) {
+export function resolveSpace( url, spaceId = '', refresh = false ) {
 	const query = new URLSearchParams( { url } );
 	if ( spaceId ) {
 		query.set( 'spaceId', spaceId );
+	}
+	if ( refresh ) {
+		query.set( 'refresh', '1' );
 	}
 	return apiFetch( { path: `${ NAMESPACE }/resolve?${ query }` } );
 }
@@ -41,6 +45,30 @@ export function resolveSpace( url, spaceId = '' ) {
 export function searchSpaces( search = '' ) {
 	const query = new URLSearchParams( { search } );
 	return apiFetch( { path: `${ NAMESPACE }/spaces?${ query }` } );
+}
+
+/**
+ * Copies a Space's preview image into the media library.
+ *
+ * @param {Object} request Either `{ url }` for a public image or `{ spaceId }` for a private Space.
+ * @param {number} postId  Post to attach the image to, or 0.
+ * @return {Promise<{id: number, url: string}>} The new attachment.
+ */
+export function sideloadImage( request, postId = 0 ) {
+	return apiFetch( {
+		path: `${ NAMESPACE }/sideload`,
+		method: 'POST',
+		data: { ...request, postId },
+	} );
+}
+
+/**
+ * Asks whether the current user has connected a Spacefast account.
+ *
+ * @return {Promise<{connected: boolean}>} Connection state.
+ */
+export function getConnection() {
+	return apiFetch( { path: `${ NAMESPACE }/connection` } );
 }
 
 /**

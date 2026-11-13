@@ -1,4 +1,4 @@
-import { getSpaceAttributes } from '../apply-space';
+import { getRefreshedAttributes, getSpaceAttributes } from '../apply-space';
 
 // What the block ends up with once the returned patch is applied.
 const applied = ( attributes, details ) => ( {
@@ -76,5 +76,45 @@ describe( 'getSpaceAttributes', () => {
 		);
 		expect( result.spaceId ).toBe( '' );
 		expect( result.imageUrl ).toBe( '' );
+	} );
+} );
+
+describe( 'getRefreshedAttributes', () => {
+	const library = {
+		display: 'card',
+		imageId: 7,
+		imageUrl: 'http://localhost/wp-content/uploads/a.png',
+	};
+
+	it( 'keeps an image chosen from the media library', () => {
+		expect( getRefreshedAttributes( library, details ) ).toEqual(
+			expect.objectContaining( {
+				title: 'A Space',
+				imageId: 7,
+				imageUrl: 'http://localhost/wp-content/uploads/a.png',
+			} )
+		);
+	} );
+
+	it( "puts back the Space's own image when asked to reset it", () => {
+		expect(
+			getRefreshedAttributes( library, details, { resetImage: true } )
+		).toEqual(
+			expect.objectContaining( {
+				imageId: 0,
+				imageUrl: 'https://a.space.fast/og.png',
+			} )
+		);
+	} );
+
+	it( 'uses the new image when none was chosen', () => {
+		expect(
+			getRefreshedAttributes( { display: 'card', imageId: 0 }, details )
+		).toEqual(
+			expect.objectContaining( {
+				imageId: 0,
+				imageUrl: 'https://a.space.fast/og.png',
+			} )
+		);
 	} );
 } );

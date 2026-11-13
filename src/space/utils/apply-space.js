@@ -35,3 +35,27 @@ export function getSpaceAttributes( attributes, details ) {
 
 	return next;
 }
+
+/**
+ * Works out the block attributes to save when the editor refreshes a Space's
+ * details. An image the editor chose from the media library is kept, unless
+ * the editor asked to put the Space's own image back.
+ *
+ * @param {Object}  attributes         Current block attributes.
+ * @param {Object}  details            Space details from the resolve route.
+ * @param {Object}  options            Options.
+ * @param {boolean} options.resetImage Drop the media library image.
+ * @return {Object} Attributes to merge into the block.
+ */
+export function getRefreshedAttributes(
+	attributes,
+	details,
+	{ resetImage = false } = {}
+) {
+	const next = getSpaceAttributes( attributes, details );
+	if ( ! resetImage && attributes.imageId ) {
+		next.imageId = attributes.imageId;
+		next.imageUrl = attributes.imageUrl;
+	}
+	return next;
+}

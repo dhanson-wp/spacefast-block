@@ -24,6 +24,29 @@ module.exports = [
 		},
 	},
 	{
+		rules: {
+			// The experimental components core's own blocks use for the same
+			// controls: tools panels, toggle groups, unit inputs, and Cover's
+			// full-height toolbar button.
+			'@wordpress/no-unsafe-wp-apis': [
+				'error',
+				{
+					'@wordpress/block-editor': [
+						'__experimentalBlockFullHeightAligmentControl',
+					],
+					'@wordpress/components': [
+						'__experimentalToggleGroupControl',
+						'__experimentalToggleGroupControlOption',
+						'__experimentalToolsPanel',
+						'__experimentalToolsPanelItem',
+						'__experimentalUnitControl',
+						'__experimentalUseCustomUnits',
+					],
+				},
+			],
+		},
+	},
+	{
 		...jestPlugin.configs[ 'flat/recommended' ],
 		files: [
 			'**/@(test|__tests__)/**/*.{js,jsx,ts,tsx,mjs,cjs}',

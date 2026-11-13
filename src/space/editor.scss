@@ -14,3 +14,47 @@
 		text-align: left;
 	}
 }
+
+// The resize handle hangs below the block, so the block can't clip it. The
+// frame takes the block's corner radius instead.
+.wp-block-spacefast-space.is-display-inline {
+	overflow: visible;
+}
+
+// The resize box sits between the block and the frame, so it passes the
+// block's height and corner radius on to the frame.
+.wp-block-spacefast-space__resizable {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	border-radius: inherit;
+
+	.wp-block-spacefast-space__frame {
+		border-radius: inherit;
+	}
+}
+
+// Full page can't be shown in the editor, so the Space gets a fixed height.
+.wp-block-spacefast-space__stage {
+	position: relative;
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	height: 480px;
+}
+
+.wp-block-spacefast-space__editor-label {
+	margin: 0;
+	padding: 0.5em 0.75em;
+	border-bottom: 1px solid color-mix(in srgb, currentcolor 15%, transparent);
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+// Catches the first click so it selects the block instead of reaching the
+// Space, as core's embed previews do.
+.wp-block-spacefast-space__click-shield {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+}
