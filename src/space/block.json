@@ -4,7 +4,7 @@
 	"version": "0.1.0",
 	"name": "spacefast/space",
 	"title": "Spacefast",
-	"category": "embed",
+	"category": "media",
 	"description": "Show a Spacefast Space inline, full page, as a card, or as a link.",
 	"keywords": [ "space", "spacefast", "app", "prototype" ],
 	"textdomain": "spacefast-block",
@@ -70,10 +70,17 @@
 			}
 		},
 		"shadow": true,
-		"color": { "text": true, "background": true },
-		"typography": { "fontSize": true },
+		"color": {
+			"text": true,
+			"background": true,
+			"__experimentalSkipSerialization": true
+		},
+		"typography": {
+			"fontSize": true,
+			"__experimentalSkipSerialization": [ "fontSize" ]
+		},
 		"dimensions": { "aspectRatio": true },
-		"interactivity": true
+		"interactivity": { "interactive": true }
 	},
 	"render": "file:./render.php",
 	"editorScript": "file:./index.js",

@@ -337,7 +337,8 @@ html.spacefast-modal-open {
 	}
 }
 
-// Visually hidden text: the full-page heading, and the skip link until focused.
+// Visually hidden text: the full-page heading, "(opens in a new tab)", and the
+// skip link until focused.
 .wp-block-spacefast-space__visually-hidden,
 .wp-block-spacefast-space__skip-link:not(:focus) {
 	position: absolute;

@@ -270,6 +270,21 @@ describe( 'getCardImageUrl', () => {
 			} )
 		).toBe( 'http://localhost/wp-content/uploads/a.png' );
 	} );
+
+	it( "prefers the media library image over the Space's own image", () => {
+		expect(
+			getCardImageUrl(
+				{ ...base, imageId: 12 },
+				'http://localhost/wp-content/uploads/a.png'
+			)
+		).toBe( 'http://localhost/wp-content/uploads/a.png' );
+	} );
+
+	it( "shows the Space's own image until the library image is known", () => {
+		expect( getCardImageUrl( { ...base, imageId: 12 }, '' ) ).toBe(
+			'https://a.space.fast/og.png'
+		);
+	} );
 } );
 
 describe( 'library image without an image URL', () => {
@@ -295,13 +310,13 @@ describe( 'library image without an image URL', () => {
 		expect( getCardImageUrl( base ) ).toBe( '' );
 	} );
 
-	it( 'prefers the stored image URL', () => {
+	it( 'prefers the media library URL over the stored image URL', () => {
 		expect(
 			getCardImageUrl(
 				{ ...base, imageUrl: 'http://localhost/up/b.png' },
 				'http://localhost/up/a.png'
 			)
-		).toBe( 'http://localhost/up/b.png' );
+		).toBe( 'http://localhost/up/a.png' );
 	} );
 
 	it( 'is turned off with the image', () => {
@@ -332,15 +347,26 @@ describe( 'library image without an image URL', () => {
 } );
 
 describe( 'getSideloadRequest', () => {
-	it( 'sends the image link for a public Space', () => {
+	it( 'sends the image link and the title as alt text for a public Space', () => {
 		expect(
 			getSideloadRequest( {
 				imageUrl: 'https://a.space.fast/og.png',
 				imageId: 0,
 				isPrivate: false,
 				spaceId: 'spc_1',
+				title: 'A Space',
 			} )
-		).toEqual( { url: 'https://a.space.fast/og.png' } );
+		).toEqual( { url: 'https://a.space.fast/og.png', alt: 'A Space' } );
+	} );
+
+	it( 'sends empty alt text when the Space has no title', () => {
+		expect(
+			getSideloadRequest( {
+				imageUrl: 'https://a.space.fast/og.png',
+				imageId: 0,
+				isPrivate: false,
+			} )
+		).toEqual( { url: 'https://a.space.fast/og.png', alt: '' } );
 	} );
 
 	it( 'sends the Space ID for a private Space', () => {

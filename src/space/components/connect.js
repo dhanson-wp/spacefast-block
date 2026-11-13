@@ -6,6 +6,10 @@ import { getErrorMessage, pollConnection, startConnection } from '../utils/api';
 
 export { disconnect } from '../utils/api';
 
+// Polls that may fail in a row, from a dropped connection say, before the
+// sign-in stops with the error.
+const MAX_POLL_FAILURES = 3;
+
 /**
  * Connects the editor's Spacefast account with the device sign-in flow.
  *
@@ -31,6 +35,7 @@ export default function Connect( { onConnected } ) {
 
 		let isActive = true;
 		let timer;
+		let failures = 0;
 		const delay = Math.max( 1, Number( request.interval ) || 1 ) * 1000;
 		const expiresAt = Date.parse( request.expiresAt );
 
@@ -54,14 +59,21 @@ export default function Connect( { onConnected } ) {
 			try {
 				( { status } = await pollConnection() );
 			} catch ( pollError ) {
-				if ( isActive ) {
+				if ( ! isActive ) {
+					return;
+				}
+				failures += 1;
+				if ( failures >= MAX_POLL_FAILURES ) {
 					stop( getErrorMessage( pollError ) );
+				} else {
+					timer = setTimeout( poll, delay );
 				}
 				return;
 			}
 			if ( ! isActive ) {
 				return;
 			}
+			failures = 0;
 
 			if ( status === 'connected' ) {
 				setRequest( null );

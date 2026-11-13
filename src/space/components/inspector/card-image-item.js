@@ -45,7 +45,8 @@ export default function CardImageItem( {
 		setIsUploading( true );
 		try {
 			const media = await sideloadImage( sideloadRequest, postId );
-			setAttributes( { imageId: media.id, imageUrl: media.url } );
+			// `imageUrl` keeps the Space's own image, the fallback if this one is deleted.
+			setAttributes( { imageId: media.id } );
 			createSuccessNotice( __( 'Image uploaded.', 'spacefast-block' ), {
 				type: 'snackbar',
 			} );
@@ -72,10 +73,7 @@ export default function CardImageItem( {
 						allowedTypes={ [ 'image' ] }
 						value={ imageId || undefined }
 						onSelect={ ( media ) =>
-							setAttributes( {
-								imageId: media.id,
-								imageUrl: media.url,
-							} )
+							setAttributes( { imageId: media.id } )
 						}
 						render={ ( { open } ) => (
 							<Button

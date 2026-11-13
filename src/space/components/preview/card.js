@@ -16,13 +16,13 @@ import { frameUrl } from '../../utils/url';
  * @param {Object} props.attributes Block attributes.
  */
 export default function CardPreview( { attributes } ) {
-	// A library image may have no URL stored with the block; look it up.
+	// The block stores only a library image's ID; look its URL up.
 	const mediaUrl = useSelect(
 		( select ) =>
-			attributes.imageId && ! attributes.imageUrl
+			attributes.imageId
 				? select( 'core' ).getMedia( attributes.imageId )?.source_url
 				: '',
-		[ attributes.imageId, attributes.imageUrl ]
+		[ attributes.imageId ]
 	);
 	const imageUrl = getCardImageUrl( attributes, mediaUrl );
 	const href = frameUrl( attributes.url, attributes.startPath );

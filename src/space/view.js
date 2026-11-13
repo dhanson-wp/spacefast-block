@@ -90,7 +90,6 @@ store( 'spacefast/space', {
 				dialog.showModal();
 			}
 			document.documentElement.classList.add( SCROLL_LOCK_CLASS );
-			context.isOpen = true;
 		} ),
 
 		close() {
@@ -129,7 +128,6 @@ store( 'spacefast/space', {
 		 */
 		onDialogClose() {
 			const { ref } = getElement();
-			getContext().isOpen = false;
 
 			// Only unlock the page when no other block's dialog is still open.
 			if ( ! document.querySelector( `${ DIALOG_SELECTOR }[open]` ) ) {

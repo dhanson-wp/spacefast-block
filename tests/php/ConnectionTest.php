@@ -109,4 +109,25 @@ final class ConnectionTest extends TestCase {
 		$this->assertSame( 'denied', Connection::reconcile_status( 'denied', true ) );
 		$this->assertSame( 'pending', Connection::reconcile_status( 'pending', true ) );
 	}
+	/**
+	 * @dataProvider poll_errors
+	 */
+	public function test_interpret_poll_error( $status, $code, $expected ) {
+		$this->assertSame( $expected, Connection::interpret_poll_error( $status, $code ) );
+	}
+
+	public function poll_errors() {
+		return array(
+			'network trouble'     => array( 502, 'spacefast_unreachable', 'pending' ),
+			'server error'        => array( 500, 'spacefast_http_error', 'pending' ),
+			'unavailable'         => array( 503, 'spacefast_http_error', 'pending' ),
+			'rate limited'        => array( 429, 'rate_limited', 'pending' ),
+			'access denied'       => array( 403, 'access_denied', 'denied' ),
+			'access denied 400'   => array( 400, 'access_denied', 'denied' ),
+			'expired code'        => array( 400, 'expired_token', 'expired' ),
+			'unknown code'        => array( 404, 'spacefast_http_error', 'expired' ),
+			'unauthorized'        => array( 401, 'unauthorized', 'expired' ),
+			'no status'           => array( 0, 'spacefast_http_error', 'expired' ),
+		);
+	}
 }

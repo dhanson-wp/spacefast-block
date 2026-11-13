@@ -32,7 +32,14 @@ function spacefast_block_uninstall_site() {
 }
 
 if ( is_multisite() ) {
-	foreach ( get_sites( array( 'fields' => 'ids' ) ) as $spacefast_block_site_id ) {
+	foreach (
+		get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) as $spacefast_block_site_id
+	) {
 		switch_to_blog( $spacefast_block_site_id );
 		spacefast_block_uninstall_site();
 		restore_current_blog();

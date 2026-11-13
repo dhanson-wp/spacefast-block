@@ -90,6 +90,26 @@ class Connection {
 	}
 
 	/**
+	 * Maps a failed poll request to a status. Network trouble (reported as a
+	 * 5xx), rate limits, and server errors are worth retrying, so the flow stays
+	 * `pending`. Spacefast's `access_denied` problem means the user declined.
+	 * Any other failure ends the flow as `expired`.
+	 *
+	 * @param int    $status HTTP status of the failure.
+	 * @param string $code   Spacefast problem code.
+	 * @return string One of `pending`, `denied`, `expired`.
+	 */
+	public static function interpret_poll_error( int $status, string $code ): string {
+		if ( 'access_denied' === $code ) {
+			return 'denied';
+		}
+		if ( $status >= 500 || 429 === $status ) {
+			return 'pending';
+		}
+		return 'expired';
+	}
+
+	/**
 	 * Returns a user's decrypted key, or null. Clears the meta if it cannot be read.
 	 *
 	 * @param int $user_id User ID.
@@ -215,13 +235,12 @@ class Connection {
 
 		$data = Api_Client::request( 'POST', '/auth/device/poll', array( 'deviceCode' => $device_code ) );
 		if ( is_wp_error( $data ) ) {
-			$status = (int) ( $data->get_error_data()['status'] ?? 0 );
-			// Network trouble, rate limits, and server errors are worth retrying.
-			if ( $status >= 500 || 429 === $status ) {
+			$status = self::interpret_poll_error( (int) ( $data->get_error_data()['status'] ?? 0 ), (string) $data->get_error_code() );
+			if ( 'pending' === $status ) {
 				return 'pending';
 			}
 			delete_transient( self::TRANSIENT_PREFIX . $user_id );
-			return self::reconcile_status( 'expired', self::is_connected( $user_id ) );
+			return self::reconcile_status( $status, self::is_connected( $user_id ) );
 		}
 
 		$result = self::interpret_poll( $data );

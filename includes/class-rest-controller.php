@@ -140,6 +140,11 @@ class Rest_Controller {
 				'args'                => array(
 					'url'     => array( 'type' => 'string' ),
 					'spaceId' => array( 'type' => 'string' ),
+					'alt'     => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
 					'postId'  => array(
 						'type'    => 'integer',
 						'default' => 0,
@@ -314,7 +319,11 @@ class Rest_Controller {
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
 		if ( $status >= 300 && $status < 400 ) {
-			return self::not_a_space();
+			return new WP_Error(
+				'spacefast_redirected',
+				__( 'That link redirects somewhere else. Paste the final address.', 'spacefast-block' ),
+				array( 'status' => 422 )
+			);
 		}
 
 		$headers     = array();
@@ -377,7 +386,7 @@ class Rest_Controller {
 		if ( $has_id ) {
 			return self::sideload_thumbnail( (string) $space_id, $post_id );
 		}
-		return self::sideload_remote_image( (string) $url, $post_id );
+		return self::sideload_remote_image( (string) $url, $post_id, (string) $request->get_param( 'alt' ) );
 	}
 
 	/**
@@ -385,9 +394,10 @@ class Rest_Controller {
 	 *
 	 * @param string $url     Image URL.
 	 * @param int    $post_id Parent post, or 0.
+	 * @param string $alt     Alt text: the block's title, sent by the editor.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private static function sideload_remote_image( string $url, int $post_id ) {
+	private static function sideload_remote_image( string $url, int $post_id, string $alt ) {
 		if ( ! Space_Lookup::is_valid_sideload_url( $url ) ) {
 			return new WP_Error(
 				'spacefast_invalid_image_url',
@@ -420,7 +430,7 @@ class Rest_Controller {
 		}
 
 		$name = pathinfo( (string) wp_parse_url( $url, PHP_URL_PATH ), PATHINFO_FILENAME );
-		return self::attach_image( $tmp, '' !== $name ? $name : 'space-preview', $post_id, '' );
+		return self::attach_image( $tmp, '' !== $name ? $name : 'space-preview', $post_id, $alt );
 	}
 
 	/**

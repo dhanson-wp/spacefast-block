@@ -235,19 +235,21 @@ export function hasCardImage( { showImage, imageUrl, imageId, isPrivate } ) {
 }
 
 /**
- * The image the card shows.
+ * The image the card shows: the media library image when one is chosen, else
+ * the Space's own image. `imageUrl` keeps the Space's own image, so it is
+ * also what shows until the library image's URL is known.
  *
  * @param {Object} attributes          Block attributes.
- * @param {string} attributes.imageUrl Image URL.
+ * @param {string} attributes.imageUrl The Space's own image URL.
  * @param {number} attributes.imageId  Media library image ID.
- * @param {string} mediaUrl            URL of the media library image, looked up from its ID, for when `imageUrl` is empty.
+ * @param {string} mediaUrl            URL of the media library image, looked up from its ID.
  * @return {string} Image URL, or '' for none.
  */
 export function getCardImageUrl( attributes, mediaUrl = '' ) {
 	if ( ! hasCardImage( attributes ) ) {
 		return '';
 	}
-	return attributes.imageUrl || ( attributes.imageId ? mediaUrl : '' ) || '';
+	return ( attributes.imageId ? mediaUrl : '' ) || attributes.imageUrl || '';
 }
 
 /**
@@ -272,13 +274,15 @@ export function getBlockClassNames( attributes, isHostVerified = true ) {
 /**
  * The body for `POST /sideload`, or null when there is nothing to copy into
  * the media library. Private Spaces send their ID so the server can fetch the
- * preview with the editor's account.
+ * preview with the editor's account. A public image link goes with the
+ * Space's title, which becomes the image's alt text.
  *
  * @param {Object}  attributes           Block attributes.
  * @param {string}  attributes.imageUrl  Image URL.
  * @param {number}  attributes.imageId   Media library image ID.
  * @param {boolean} attributes.isPrivate Whether the Space is private.
  * @param {string}  attributes.spaceId   Space ID.
+ * @param {string}  attributes.title     Space title.
  * @return {Object|null} Request body.
  */
 export function getSideloadRequest( {
@@ -286,6 +290,7 @@ export function getSideloadRequest( {
 	imageId,
 	isPrivate,
 	spaceId,
+	title,
 } ) {
 	if ( imageId ) {
 		return null;
@@ -293,7 +298,7 @@ export function getSideloadRequest( {
 	if ( isPrivate ) {
 		return spaceId ? { spaceId } : null;
 	}
-	return imageUrl ? { url: imageUrl } : null;
+	return imageUrl ? { url: imageUrl, alt: title || '' } : null;
 }
 
 /**

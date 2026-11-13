@@ -17,8 +17,10 @@ import {
 import {
 	getBlockClassNames,
 	getDisplayNotice,
+	getEffectiveDisplay,
 	getMinHeight,
 } from './utils/display';
+import useColorAndFontSizeProps from './utils/use-color-and-font-size-props';
 import useHostVerified from './utils/use-host-verified';
 import { frameUrl } from './utils/url';
 
@@ -45,12 +47,27 @@ export default function Edit( {
 		hasSpace && ! isCheckingHost
 			? getMinHeight( attributes, canFrameHost )
 			: undefined;
+	// The link mode puts color and font size on its button; every other mode
+	// on the block wrapper.
+	const supportProps = useColorAndFontSizeProps( attributes );
+	const isLink =
+		hasSpace &&
+		! isCheckingHost &&
+		getEffectiveDisplay( attributes, canFrameHost ) === 'link';
+	const wrapperClassNames = [
+		hasSpace && ! isCheckingHost
+			? getBlockClassNames( attributes, canFrameHost )
+			: '',
+		isLink ? '' : supportProps.className,
+	].filter( Boolean );
 	const blockProps = useBlockProps( {
-		className:
-			hasSpace && ! isCheckingHost
-				? getBlockClassNames( attributes, canFrameHost )
-				: undefined,
-		style: minHeight ? { minHeight } : undefined,
+		className: wrapperClassNames.length
+			? wrapperClassNames.join( ' ' )
+			: undefined,
+		style: {
+			...( isLink ? {} : supportProps.style ),
+			...( minHeight ? { minHeight } : {} ),
+		},
 	} );
 
 	const applySpace = ( details ) => {
@@ -145,6 +162,7 @@ export default function Edit( {
 					isSelected={ isSelected }
 					toggleSelection={ toggleSelection }
 					isHostVerified={ canFrameHost }
+					supportProps={ supportProps }
 				/>
 			</div>
 		</>

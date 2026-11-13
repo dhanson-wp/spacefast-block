@@ -12,8 +12,13 @@ import { getLinkFallback } from '../../utils/display';
  * @param {Object}                 props               Component props.
  * @param {Object}                 props.attributes    Block attributes.
  * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {Object}                 props.supportProps  Color and font size classes and styles for the button.
  */
-export default function LinkPreview( { attributes, setAttributes } ) {
+export default function LinkPreview( {
+	attributes,
+	setAttributes,
+	supportProps,
+} ) {
 	return (
 		<>
 			{ attributes.isPrivate && attributes.showPrivateBadge && (
@@ -23,12 +28,19 @@ export default function LinkPreview( { attributes, setAttributes } ) {
 				<RichText
 					identifier="linkLabel"
 					tagName="div"
-					className="wp-block-button__link wp-element-button wp-block-spacefast-space__link"
+					className={ [
+						'wp-block-button__link wp-element-button wp-block-spacefast-space__link',
+						supportProps?.className,
+					]
+						.filter( Boolean )
+						.join( ' ' ) }
+					style={ supportProps?.style }
 					aria-label={ __( 'Link text', 'spacefast-block' ) }
 					placeholder={ getLinkFallback( attributes ) }
 					value={ attributes.linkLabel }
 					onChange={ ( linkLabel ) => setAttributes( { linkLabel } ) }
 					allowedFormats={ [] }
+					disableLineBreaks
 					withoutInteractiveFormatting
 				/>
 			</div>

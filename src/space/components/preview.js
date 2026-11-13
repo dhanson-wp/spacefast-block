@@ -20,6 +20,7 @@ const PREVIEWS = {
  * @param {boolean}                      props.isSelected      Whether the block is selected.
  * @param {(isEnabled: boolean) => void} props.toggleSelection Turns block selection on or off.
  * @param {boolean}                      props.isHostVerified  Whether the Space's host may be framed.
+ * @param {Object}                       props.supportProps    Color and font size classes and styles, for the link mode's button.
  */
 export default function SpacePreview( { isHostVerified, ...props } ) {
 	const Preview =

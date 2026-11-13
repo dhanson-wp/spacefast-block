@@ -61,6 +61,62 @@ function spacefast_block_private_badge_html( array $attributes ): string {
 }
 
 /**
+ * The classes and styles for the block's color and font size supports. The
+ * block skips their serialization on its wrapper, so the link mode can put
+ * them on its button, as the core Button block does; every other mode puts
+ * them back on the wrapper. Core's own support functions build them, from a
+ * block type that serializes them. Mirrors
+ * src/space/utils/use-color-and-font-size-props.js.
+ *
+ * @param array $attributes Block attributes.
+ * @return array{class: string, style: string}
+ */
+function spacefast_block_color_and_font_size( array $attributes ): array {
+	static $block_type = null;
+	if ( null === $block_type ) {
+		$block_type = new WP_Block_Type(
+			'spacefast/space-text-supports',
+			array(
+				'supports' => array(
+					'color'      => array(
+						'text'       => true,
+						'background' => true,
+					),
+					'typography' => array( 'fontSize' => true ),
+				),
+			)
+		);
+	}
+
+	$classes = array();
+	$styles  = array();
+	foreach ( array( wp_apply_colors_support( $block_type, $attributes ), wp_apply_typography_support( $block_type, $attributes ) ) as $support ) {
+		if ( ! empty( $support['class'] ) ) {
+			$classes[] = $support['class'];
+		}
+		if ( ! empty( $support['style'] ) ) {
+			$styles[] = rtrim( $support['style'], ';' ) . ';';
+		}
+	}
+	return array(
+		'class' => implode( ' ', $classes ),
+		'style' => implode( '', $styles ),
+	);
+}
+
+/**
+ * Visually hidden "(opens in a new tab)" text for a link that opens a new tab,
+ * as core blocks print it.
+ *
+ * @return string HTML.
+ */
+function spacefast_block_new_tab_text(): string {
+	return '<span class="wp-block-spacefast-space__visually-hidden"> '
+		. esc_html__( '(opens in a new tab)', 'spacefast-block' )
+		. '</span>';
+}
+
+/**
  * Whether the block opens its Space in a modal: the click action asks for one
  * and the Space can be framed. Only the card and link modes have a trigger.
  *
@@ -76,8 +132,8 @@ function spacefast_block_has_modal( array $attributes, bool $host_may_be_framed 
 
 /**
  * Attributes for a card or link anchor: a plain link to the Space. It opens in a
- * new tab only when asked, and carries the hook the modal script listens for
- * only when a modal can show the Space.
+ * new tab only when asked, and carries the hook the modal script listens for,
+ * and says it opens a dialog, only when a modal can show the Space.
  *
  * @param array  $attributes Block attributes.
  * @param string $href       Link target.
@@ -91,7 +147,7 @@ function spacefast_block_trigger_attributes( array $attributes, string $href, bo
 		$html .= ' target="_blank" rel="noopener"';
 	}
 	if ( $has_modal ) {
-		$html .= ' data-wp-on--click="actions.open"';
+		$html .= ' aria-haspopup="dialog" data-wp-on--click="actions.open"';
 	}
 	return $html;
 }
@@ -171,7 +227,11 @@ function spacefast_block_card_html( array $attributes, string $href, string $ima
 	if ( $show( 'showBranding' ) ) {
 		$html .= spacefast_block_branding_html();
 	}
-	$html .= '</span></a>';
+	$html .= '</span>';
+	if ( ! empty( $attributes['openInNewTab'] ) ) {
+		$html .= spacefast_block_new_tab_text();
+	}
+	$html .= '</a>';
 
 	return $html;
 }
@@ -196,14 +256,22 @@ function spacefast_block_link_html( array $attributes, string $href, bool $has_m
 		$html .= spacefast_block_private_badge_html( $attributes );
 	}
 
+	$supports = spacefast_block_color_and_font_size( $attributes );
+	$button   = 'wp-block-button__link wp-element-button wp-block-spacefast-space__link';
+	if ( '' !== $supports['class'] ) {
+		$button .= ' ' . $supports['class'];
+	}
+	$style = '' !== $supports['style'] ? ' style="' . esc_attr( $supports['style'] ) . '"' : '';
+
 	$label = Space_Display::link_label(
 		$attributes,
 		__( 'Open Space', 'spacefast-block' ),
 		__( 'Request access', 'spacefast-block' )
 	);
 	$html .= '<div class="wp-block-button">'
-		. '<a class="wp-block-button__link wp-element-button wp-block-spacefast-space__link"' . spacefast_block_trigger_attributes( $attributes, $href, $has_modal ) . '>'
+		. '<a class="' . esc_attr( $button ) . '"' . $style . spacefast_block_trigger_attributes( $attributes, $href, $has_modal ) . '>'
 		. esc_html( $label )
+		. ( ! empty( $attributes['openInNewTab'] ) ? spacefast_block_new_tab_text() : '' )
 		. '</a></div>';
 
 	if ( $attributes['showBranding'] ?? true ) {
@@ -280,6 +348,7 @@ function spacefast_block_modal_html( array $attributes, string $href ): string {
 	if ( $attributes['modalExternalLink'] ?? true ) {
 		$html .= '<a class="wp-block-spacefast-space__modal-link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener">'
 			. esc_html__( 'Open in new tab', 'spacefast-block' )
+			. spacefast_block_new_tab_text()
 			. '</a>';
 	}
 	$html .= '<button type="button" class="wp-block-spacefast-space__modal-close" autofocus aria-label="' . esc_attr__( 'Close', 'spacefast-block' ) . '" data-wp-on--click="actions.close">'
@@ -317,6 +386,7 @@ function spacefast_block_inline_html( array $attributes, string $href, array $fr
 		}
 		$html .= '<a class="wp-block-spacefast-space__link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener">'
 			. esc_html__( 'Open in new tab', 'spacefast-block' )
+			. spacefast_block_new_tab_text()
 			. '</a></div>';
 	}
 	return $html . spacefast_block_frame_html( $attributes, $frame_args );
@@ -390,10 +460,24 @@ function spacefast_block_render( array $attributes ): string {
 		$inner .= spacefast_block_modal_html( $attributes, $href );
 	}
 
-	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes, $host_may_be_framed ) . ( $is_takeover ? ' is-fullpage-takeover' : '' ) );
-	$height  = Space_Display::min_height( $attributes, $host_may_be_framed );
+	$wrapper = array(
+		'class' => Space_Display::block_class_names( $attributes, $host_may_be_framed ) . ( $is_takeover ? ' is-fullpage-takeover' : '' ),
+		'style' => '',
+	);
+	// The link mode put color and font size on its button already.
+	if ( 'link' !== $display ) {
+		$supports = spacefast_block_color_and_font_size( $attributes );
+		if ( '' !== $supports['class'] ) {
+			$wrapper['class'] .= ' ' . $supports['class'];
+		}
+		$wrapper['style'] .= $supports['style'];
+	}
+	$height = Space_Display::min_height( $attributes, $host_may_be_framed );
 	if ( null !== $height ) {
-		$wrapper['style'] = 'min-height:' . $height . ';';
+		$wrapper['style'] .= 'min-height:' . $height . ';';
+	}
+	if ( '' === $wrapper['style'] ) {
+		unset( $wrapper['style'] );
 	}
 
 	// The store is only added when there is a modal or a takeover to drive.
@@ -402,12 +486,7 @@ function spacefast_block_render( array $attributes ): string {
 		$interactive = ' data-wp-interactive="spacefast/space" data-wp-init="callbacks.initTakeover"';
 	} elseif ( $has_modal ) {
 		$interactive = ' data-wp-interactive="spacefast/space" '
-			. wp_interactivity_data_wp_context(
-				array(
-					'frameUrl' => $href,
-					'isOpen'   => false,
-				)
-			);
+			. wp_interactivity_data_wp_context( array( 'frameUrl' => $href ) );
 	}
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() and wp_interactivity_data_wp_context() return escaped output, and every part of $inner is escaped where it is built.
