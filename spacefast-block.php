@@ -27,6 +27,7 @@ require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-lookup.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-api-client.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-connection.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-rest-controller.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-takeover.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/render-helpers.php';
 
 /**
@@ -38,3 +39,4 @@ function register_block() {
 add_action( 'init', __NAMESPACE__ . '\register_block' );
 
 Rest_Controller::init();
+Takeover::init();

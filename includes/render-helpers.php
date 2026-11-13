@@ -4,14 +4,15 @@
  *
  * These functions build the same structure and class names as the editor
  * preview in src/space/components/preview, so both look alike. Every value is
- * escaped where it is printed. The modal and full-page tasks reuse
- * spacefast_block_frame_html().
+ * escaped where it is printed. The inline, full-page, and modal markup
+ * share spacefast_block_frame_html().
  *
  * @package Spacefast_Block
  */
 
 use Spacefast_Block\Space_Display;
 use Spacefast_Block\Space_Url;
+use Spacefast_Block\Takeover;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -264,7 +265,7 @@ function spacefast_block_modal_html( array $attributes, string $href ): string {
 	$close_path = 'm13.06 12 6.47-6.47-1.06-1.06L12 10.94 5.53 4.47 4.47 5.53 10.94 12l-6.47 6.47 1.06 1.06L12 13.06l6.47 6.47 1.06-1.06L13.06 12Z';
 
 	$html  = '<dialog class="wp-block-spacefast-space__modal" aria-labelledby="' . esc_attr( $title_id ) . '"'
-		. ' data-wp-on--click="actions.closeOnBackdrop" data-wp-on--close="callbacks.onDialogClose">';
+		. ' data-wp-on--pointerdown="actions.notePress" data-wp-on--click="actions.closeOnBackdrop" data-wp-on--close="callbacks.onDialogClose">';
 	$html .= '<div class="wp-block-spacefast-space__modal-header">';
 	$html .= '<span class="wp-block-spacefast-space__modal-title" id="' . esc_attr( $title_id ) . '">'
 		. esc_html( Space_Display::card_title( $attributes ) ) . '</span>';
@@ -298,9 +299,10 @@ function spacefast_block_modal_html( array $attributes, string $href ): string {
  *
  * @param array  $attributes Block attributes.
  * @param string $href       Link to the Space.
+ * @param array  $frame_args Options for spacefast_block_frame_html().
  * @return string HTML.
  */
-function spacefast_block_inline_html( array $attributes, string $href ): string {
+function spacefast_block_inline_html( array $attributes, string $href, array $frame_args = array() ): string {
 	$html = '';
 	if ( ! empty( $attributes['showTitleBar'] ) ) {
 		$html .= '<div class="wp-block-spacefast-space__title-bar">'
@@ -312,7 +314,30 @@ function spacefast_block_inline_html( array $attributes, string $href ): string 
 			. esc_html__( 'Open in new tab', 'spacefast-block' )
 			. '</a></div>';
 	}
-	return $html . spacefast_block_frame_html( $attributes );
+	return $html . spacefast_block_frame_html( $attributes, $frame_args );
+}
+
+/**
+ * The full-page takeover: the inline markup with the frame loaded straight
+ * away, since it is the page. The theme's post title is hidden while the Space
+ * takes over, so a visually hidden heading keeps the page's <h1>. When the
+ * header or footer is hidden, a "Back to site" link, shown on focus, replaces
+ * the site navigation it took away.
+ *
+ * @param array  $attributes Block attributes.
+ * @param string $href       Link to the Space.
+ * @return string HTML.
+ */
+function spacefast_block_takeover_html( array $attributes, string $href ): string {
+	$html = '';
+	if ( ! empty( $attributes['hideHeader'] ) || ! empty( $attributes['hideFooter'] ) ) {
+		$html .= '<a class="wp-block-spacefast-space__skip-link" href="' . esc_url( home_url( '/' ) ) . '">'
+			. esc_html__( 'Back to site', 'spacefast-block' )
+			. '</a>';
+	}
+	$html .= '<h1 class="wp-block-spacefast-space__visually-hidden">' . esc_html( Space_Display::card_title( $attributes ) ) . '</h1>';
+
+	return $html . spacefast_block_inline_html( $attributes, $href, array( 'loading' => 'eager' ) );
 }
 
 /**
@@ -331,9 +356,12 @@ function spacefast_block_render( array $attributes ): string {
 		$attributes['hostname'] = Space_Url::hostname( $href );
 	}
 
-	$display = Space_Display::effective_display( $attributes );
-	$inner   = '';
-	if ( 'card' === $display ) {
+	$display     = Space_Display::effective_display( $attributes );
+	$is_takeover = 'fullpage' === $display && Takeover::claim();
+	$inner       = '';
+	if ( $is_takeover ) {
+		$inner = spacefast_block_takeover_html( $attributes, $href );
+	} elseif ( 'card' === $display ) {
 		$image_html = spacefast_block_card_image_html( $attributes );
 		if ( '' === $image_html ) {
 			// Classes follow what the card actually shows.
@@ -343,7 +371,7 @@ function spacefast_block_render( array $attributes ): string {
 	} elseif ( 'link' === $display ) {
 		$inner = spacefast_block_link_html( $attributes, $href );
 	} else {
-		// Full page looks like inline until the takeover arrives.
+		// Inline, and every full-page block that doesn't take over the page.
 		$inner = spacefast_block_inline_html( $attributes, $href );
 	}
 
@@ -352,15 +380,17 @@ function spacefast_block_render( array $attributes ): string {
 		$inner .= spacefast_block_modal_html( $attributes, $href );
 	}
 
-	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes ) );
+	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes ) . ( $is_takeover ? ' is-fullpage-takeover' : '' ) );
 	$height  = Space_Display::min_height( $attributes );
 	if ( null !== $height ) {
 		$wrapper['style'] = 'min-height:' . $height . ';';
 	}
 
-	// The store and its per-block context are only added when there is a modal to drive.
+	// The store is only added when there is a modal or a takeover to drive.
 	$interactive = '';
-	if ( $has_modal ) {
+	if ( $is_takeover ) {
+		$interactive = ' data-wp-interactive="spacefast/space" data-wp-init="callbacks.initTakeover"';
+	} elseif ( $has_modal ) {
 		$interactive = ' data-wp-interactive="spacefast/space" '
 			. wp_interactivity_data_wp_context(
 				array(

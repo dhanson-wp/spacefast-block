@@ -12,3 +12,4 @@ require_once dirname( __DIR__, 2 ) . '/includes/class-space-metadata.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-api-client.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-connection.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-space-lookup.php';
+require_once dirname( __DIR__, 2 ) . '/includes/class-takeover.php';

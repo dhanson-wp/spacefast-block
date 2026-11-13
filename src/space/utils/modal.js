@@ -52,3 +52,20 @@ export function shouldOpenModal(
 export function isBackdropClick( target, dialog ) {
 	return !! dialog && target === dialog;
 }
+
+/**
+ * Whether a click should close the dialog as a backdrop click. The press must
+ * have started on the backdrop too, so selecting text or dragging from inside
+ * the dialog and letting go over the backdrop leaves it open.
+ *
+ * @param {?EventTarget} pressTarget Target of the pointerdown that began the click.
+ * @param {?EventTarget} clickTarget Click target.
+ * @param {?Element}     dialog      The dialog element.
+ * @return {boolean} True to close the dialog.
+ */
+export function isBackdropDismiss( pressTarget, clickTarget, dialog ) {
+	return (
+		isBackdropClick( pressTarget, dialog ) &&
+		isBackdropClick( clickTarget, dialog )
+	);
+}

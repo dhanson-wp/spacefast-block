@@ -208,9 +208,11 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 	gap: var(--wp--style--block-gap, 0.75rem);
 }
 
-// Modal: a native dialog, nearly full screen. The page can't scroll behind it.
+// Modal: a native dialog, nearly full screen. The page can't scroll behind it,
+// and keeps the scrollbar's space so nothing shifts when the scrollbar goes.
 html.spacefast-modal-open {
 	overflow: hidden;
+	scrollbar-gutter: stable;
 }
 
 :where(.wp-block-spacefast-space__modal) {
@@ -332,4 +334,126 @@ html.spacefast-modal-open {
 	from {
 		opacity: 0;
 	}
+}
+
+// Visually hidden text: the full-page heading, and the skip link until focused.
+.wp-block-spacefast-space__visually-hidden,
+.wp-block-spacefast-space__skip-link:not(:focus) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.wp-block-spacefast-space__skip-link:focus {
+	position: absolute;
+	top: var(--wp--preset--spacing--20, 0.5rem);
+	left: var(--wp--preset--spacing--20, 0.5rem);
+	z-index: 1;
+	padding: 0.5em 1em;
+	background: var(--wp--preset--color--base, #fff);
+	color: var(--wp--preset--color--contrast, #111);
+	font-size: var(--wp--preset--font-size--small, 0.875rem);
+	line-height: 1.4;
+	outline: 2px solid currentcolor;
+	outline-offset: 2px;
+}
+
+// Full page. The `has-spacefast-fullpage` body class, added in PHP, switches
+// the takeover on before anything paints. The page stops scrolling and
+// everything but the header, the footer, and the Space is hidden with
+// `visibility`, which also takes it out of the accessibility tree and the tab
+// order while keeping the block's ancestors rendered. The header is pinned to
+// the top and the footer to the bottom, and the Space fills the gap between
+// them. The view script measures both and sets `--spacefast-top` and
+// `--spacefast-bottom`; until it runs the Space sits under the header and
+// footer. The region lists match HEADER_SELECTORS and FOOTER_SELECTORS in
+// utils/takeover.js. Only the outermost match of each list is a region.
+$spacefast-header-list: (
+	"header.wp-block-template-part",
+	".wp-site-blocks > header",
+	"#masthead",
+	".site-header",
+	"body > header",
+);
+$spacefast-footer-list: (
+	"footer.wp-block-template-part",
+	".wp-site-blocks > footer",
+	"#colophon",
+	".site-footer",
+	"body > footer",
+);
+$h: $spacefast-header-list;
+$f: $spacefast-footer-list;
+$spacefast-site-header: ":is(#{$h}):not(:is(#{$h}) *)";
+$spacefast-site-footer: ":is(#{$f}):not(:is(#{$f}) *)";
+
+// Above page content, below the admin bar (99999).
+$spacefast-takeover-z: 99990;
+
+html:has(> body.has-spacefast-fullpage) {
+	overflow: hidden;
+}
+
+body.has-spacefast-fullpage {
+	height: 100vh; // Fallback for browsers without dvh.
+	height: 100dvh;
+	overflow: hidden;
+	visibility: hidden;
+
+	#wpadminbar {
+		visibility: visible;
+	}
+
+	#{$spacefast-site-header},
+	#{$spacefast-site-footer} {
+		position: fixed;
+		right: 0;
+		left: 0;
+		z-index: $spacefast-takeover-z + 1;
+		margin-block: 0;
+		visibility: visible;
+	}
+
+	#{$spacefast-site-header} {
+		top: var(--wp-admin--admin-bar--height, 0px);
+	}
+
+	// A tall footer scrolls inside the bottom 40% of the screen.
+	#{$spacefast-site-footer} {
+		bottom: 0;
+		max-height: 40vh; // Fallback for browsers without dvh.
+		max-height: 40dvh;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	// The Space is the page: no spacing, border, radius, shadow, or size of
+	// its own while it takes over. Block supports print some of these inline.
+	.wp-block-spacefast-space.is-fullpage-takeover {
+		position: fixed;
+		inset: var(--spacefast-top, var(--wp-admin--admin-bar--height, 0px)) 0 var(--spacefast-bottom, 0px) 0;
+		z-index: $spacefast-takeover-z;
+		width: auto !important;
+		max-width: none !important;
+		height: auto !important;
+		min-height: 0 !important;
+		aspect-ratio: auto !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		border: 0 !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		visibility: visible;
+	}
+}
+
+body.spacefast-hide-header #{$spacefast-site-header},
+body.spacefast-hide-footer #{$spacefast-site-footer} {
+	display: none !important;
 }

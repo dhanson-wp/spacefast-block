@@ -1,5 +1,15 @@
 import * as interactivity from '@wordpress/interactivity';
-import { isBackdropClick, shouldOpenModal, supportsModal } from './utils/modal';
+import {
+	isBackdropDismiss,
+	shouldOpenModal,
+	supportsModal,
+} from './utils/modal';
+import {
+	FOOTER_SELECTORS,
+	HEADER_SELECTORS,
+	computeOffsets,
+	pickFirstVisible,
+} from './utils/takeover';
 
 const { store, getContext, getElement } = interactivity;
 
@@ -17,6 +27,10 @@ const DIALOG_SELECTOR = 'dialog.wp-block-spacefast-space__modal';
 
 // The element that opened each dialog, so focus can go back to it on close.
 const triggers = new WeakMap();
+
+// Where the last press inside each dialog began, to tell a backdrop click from
+// a drag that ends on the backdrop.
+const presses = new WeakMap();
 
 /**
  * The block wrapper's dialog for an element inside the block.
@@ -66,13 +80,25 @@ store( 'spacefast/space', {
 		},
 
 		/**
-		 * A click on the dialog element itself is a click on the backdrop.
+		 * Remember where a press in the dialog began.
+		 *
+		 * @param {PointerEvent} event The pointerdown event.
+		 */
+		notePress( event ) {
+			presses.set( getElement().ref, event.target );
+		},
+
+		/**
+		 * A click on the dialog element itself is a click on the backdrop. It
+		 * only closes the dialog when the press began on the backdrop too.
 		 *
 		 * @param {Event} event The click event.
 		 */
 		closeOnBackdrop( event ) {
 			const { ref } = getElement();
-			if ( isBackdropClick( event.target, ref ) ) {
+			const pressTarget = presses.get( ref ) ?? null;
+			presses.delete( ref );
+			if ( isBackdropDismiss( pressTarget, event.target, ref ) ) {
 				ref.close();
 			}
 		},
@@ -94,5 +120,106 @@ store( 'spacefast/space', {
 
 			triggers.get( ref )?.focus();
 		},
+
+		/**
+		 * The full-page block: keep it between the site header and footer. The
+		 * body classes added in PHP already lay the page out; this measures the
+		 * header, footer, and admin bar and writes the exact offsets.
+		 *
+		 * @return {() => void} Cleanup.
+		 */
+		initTakeover() {
+			return startTakeover( document, window );
+		},
 	},
 } );
+
+/**
+ * Whether an element is laid out.
+ *
+ * @param {Element} element The element.
+ * @return {boolean} True when it takes up space.
+ */
+function isLaidOut( element ) {
+	return element.getClientRects().length > 0;
+}
+
+/**
+ * The first visible element for a list of selectors, in priority order.
+ *
+ * @param {Document} doc       The document.
+ * @param {string[]} selectors Selectors, most specific first.
+ * @return {?Element} The element.
+ */
+function findRegion( doc, selectors ) {
+	return pickFirstVisible(
+		selectors.map( ( selector ) =>
+			Array.from( doc.querySelectorAll( selector ) )
+		),
+		isLaidOut
+	);
+}
+
+/**
+ * Measure the header, footer, and admin bar and write `--spacefast-top` and
+ * `--spacefast-bottom` on <html>, now and whenever any of them or the window
+ * changes size.
+ *
+ * @param {Document} doc The document.
+ * @param {Window}   win The window.
+ * @return {() => void} Stops watching.
+ */
+function startTakeover( doc, win ) {
+	const root = doc.documentElement;
+	const body = doc.body;
+	const hideHeader = body.classList.contains( 'spacefast-hide-header' );
+	const hideFooter = body.classList.contains( 'spacefast-hide-footer' );
+	const header = hideHeader ? null : findRegion( doc, HEADER_SELECTORS );
+	const footer = hideFooter ? null : findRegion( doc, FOOTER_SELECTORS );
+	const adminBar = doc.getElementById( 'wpadminbar' );
+
+	const height = ( element ) =>
+		element && isLaidOut( element )
+			? element.getBoundingClientRect().height
+			: 0;
+
+	let frame = 0;
+	const update = () => {
+		frame = 0;
+		const { top, bottom } = computeOffsets( {
+			adminBarHeight: height( adminBar ),
+			headerHeight: height( header ),
+			footerHeight: height( footer ),
+			viewportHeight: win.innerHeight,
+			hideHeader,
+			hideFooter,
+		} );
+		root.style.setProperty( '--spacefast-top', `${ top }px` );
+		root.style.setProperty( '--spacefast-bottom', `${ bottom }px` );
+	};
+	const schedule = () => {
+		if ( ! frame ) {
+			frame = win.requestAnimationFrame( update );
+		}
+	};
+
+	update();
+	win.addEventListener( 'resize', schedule );
+	doc.fonts?.ready.then( schedule );
+
+	let observer = null;
+	if ( typeof win.ResizeObserver === 'function' ) {
+		observer = new win.ResizeObserver( schedule );
+		[ header, footer, adminBar ].forEach(
+			( element ) => element && observer.observe( element )
+		);
+	}
+
+	return () => {
+		win.removeEventListener( 'resize', schedule );
+		observer?.disconnect();
+		if ( frame ) {
+			win.cancelAnimationFrame( frame );
+		}
+	};
+}
