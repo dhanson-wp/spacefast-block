@@ -11,10 +11,11 @@ import {
 	pickFirstVisible,
 } from './utils/takeover';
 import {
-	HEIGHT_TIMEOUT,
+	acceptScroll,
 	clampHeight,
 	navigationTarget,
 	readMessage,
+	remainingWait,
 	shouldFallBack,
 } from './utils/relay';
 
@@ -165,6 +166,7 @@ store( 'spacefast/space', {
 							spaceUrl: fit.spaceUrl,
 							directUrl: fit.directUrl,
 							relayBase: fit.relayBase,
+							signature: fit.signature,
 							sandbox: fit.sandbox,
 							allowFullscreen: fit.allowFullscreen,
 						},
@@ -295,6 +297,7 @@ function startTakeover( doc, win ) {
  * @param {string}   fit.spaceUrl        The Space's URL.
  * @param {string}   fit.directUrl       The Space page the frame shows.
  * @param {string}   fit.relayBase       The REST namespace URL.
+ * @param {string}   fit.signature       The Space host's relay signature, from the server.
  * @param {string}   fit.sandbox         The sandbox for framing the Space directly.
  * @param {boolean}  fit.allowFullscreen Whether the direct frame allows fullscreen.
  * @param {Document} doc                 The document.
@@ -318,15 +321,27 @@ function startRelay( wrapper, fit, doc, win ) {
 			? adminBar.getBoundingClientRect().height
 			: 0;
 
-	// The frame's offset covers a title bar above it, if the block shows one.
+	// The header's height, as startTakeover() measured it.
+	const headerHeight = () =>
+		parseFloat( root.style.getPropertyValue( '--spacefast-header' ) ) || 0;
+
+	// At least the screen under the header. The frame's offset covers a title
+	// bar above it, if the block shows one. Once the frame is as tall as its
+	// page, the page is told to stop scrolling inside; until then, and
+	// without this script, it scrolls inside as usual.
 	const applyHeight = () => {
 		if ( ! reported || state.fellBack ) {
 			return;
 		}
 		const height =
-			clampHeight( reported, win.innerHeight - adminBarHeight() ) +
-			frame.offsetTop;
+			clampHeight(
+				reported,
+				win.innerHeight - adminBarHeight() - headerHeight()
+			) + frame.offsetTop;
 		root.style.setProperty( '--spacefast-space-height', `${ height }px` );
+		// Every time: after a link, the first height can still come from the
+		// page being left, and the new page needs telling too.
+		frame.contentWindow?.postMessage( { spacefastBlock: 'sized' }, '*' );
 	};
 
 	const resetHeight = () => {
@@ -344,13 +359,22 @@ function startRelay( wrapper, fit, doc, win ) {
 		}
 	};
 
-	const startTimer = () => {
+	// The wait for a first height counts from when the frame started loading,
+	// which for the first page is before this script ran.
+	const startTimer = ( startedAt ) => {
 		win.clearTimeout( timer );
 		timer = win.setTimeout(
 			() => handle( { type: 'timeout' } ),
-			HEIGHT_TIMEOUT
+			remainingWait( win.performance.now(), startedAt )
 		);
 	};
+	const frameStart = () =>
+		win.performance
+			.getEntriesByType?.( 'resource' )
+			.find(
+				( entry ) =>
+					entry.initiatorType === 'iframe' && entry.name === frame.src
+			)?.startTime;
 
 	const onMessage = ( event ) => {
 		const message = readMessage( event, frame.contentWindow );
@@ -391,21 +415,34 @@ function startRelay( wrapper, fit, doc, win ) {
 		} else if ( message.type === 'ready' ) {
 			state.ready = true;
 		} else if ( message.type === 'scroll' ) {
-			scrollToSpace( frame.offsetTop + message.top );
+			// Only for a click in the Space, and never past its end.
+			const top = acceptScroll( message.top, {
+				isActive: win.navigator.userActivation?.isActive,
+				maxTop: reported,
+			} );
+			if ( top !== null ) {
+				scrollToSpace( frame.offsetTop + top );
+			}
 		} else if ( message.type === 'navigate' ) {
 			const target = navigationTarget(
 				fit.spaceUrl,
 				message.path,
-				fit.relayBase
+				fit.relayBase,
+				fit.signature
 			);
 			if ( ! target ) {
 				return;
 			}
 			directUrl = target.direct;
+			scrollToSpace( 0, true );
+			if ( ! target.relay ) {
+				// The relay never carries a query: show that page directly.
+				fallBack();
+				return;
+			}
 			state.ready = false;
 			state.hasHeight = false;
 			resetHeight();
-			scrollToSpace( 0, true );
 			frame.setAttribute( 'src', target.relay );
 			startTimer();
 		}
@@ -413,7 +450,7 @@ function startRelay( wrapper, fit, doc, win ) {
 
 	win.addEventListener( 'message', onMessage );
 	win.addEventListener( 'resize', applyHeight );
-	startTimer();
+	startTimer( frameStart() );
 	// The page may have reported before this script ran; ask again.
 	frame.contentWindow?.postMessage( { spacefastBlock: 'measure' }, '*' );
 

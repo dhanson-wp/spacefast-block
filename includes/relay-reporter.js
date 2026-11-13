@@ -24,6 +24,8 @@
 	var earlyError = null;
 	var base = doc.getElementsByTagName( 'base' )[ 0 ];
 	// <base> has no `host` of its own; the relay always writes it as https.
+	var FILE_EXTENSIONS =
+		/\.(?:pdf|zip|gz|tgz|tar|rar|7z|dmg|exe|msi|apk|epub|csv|txt|json|xml|rtf|docx?|xlsx?|pptx?|key|numbers|pages|od[tsp]|mp[34]|m4[av]|mov|webm|ogg|ogv|wav|flac|aac|avi|mkv|png|jpe?g|gif|webp|avif|svg|ico|heic|tiff?)$/i;
 	var spaceHost = base
 		? ( /^https:\/\/([^/?#]+)/i.exec( base.href ) || [ '', '' ] )[ 1 ]
 		: '';
@@ -177,13 +179,20 @@
 		}
 	}
 
-	// The parent's script can start after the first reports were sent.
+	// Messages from the parent: `measure` because its script can start after
+	// the first reports were sent, and `sized` once the frame is as tall as
+	// the page, so it stops scrolling inside. Until then (and with no script
+	// in the parent at all) the page scrolls inside its frame as usual.
 	win.addEventListener( 'message', function ( event ) {
-		if (
-			event.source !== win.parent ||
-			! event.data ||
-			event.data.spacefastBlock !== 'measure'
-		) {
+		var type = event.data && event.data.spacefastBlock;
+		if ( event.source !== win.parent ) {
+			return;
+		}
+		if ( type === 'sized' ) {
+			root.style.overflow = 'hidden';
+			return;
+		}
+		if ( type !== 'measure' ) {
 			return;
 		}
 		if ( earlyError ) {
@@ -240,12 +249,12 @@
 		if ( protocol !== 'https:' && protocol !== 'http:' ) {
 			return;
 		}
-		// Another site, or a file on the Space (a video, a PDF) rather than a
-		// page, which the relay doesn't serve.
+		// Another site, or a document, archive, or media file on the Space,
+		// which the relay doesn't serve.
 		if (
 			link.host !== spaceHost ||
 			protocol !== 'https:' ||
-			/\.(?!html?$)[A-Za-z0-9]+$/.test( link.pathname )
+			FILE_EXTENSIONS.test( link.pathname )
 		) {
 			if ( ! link.hasAttribute( 'download' ) ) {
 				link.setAttribute( 'target', '_blank' );

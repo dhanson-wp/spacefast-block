@@ -174,6 +174,25 @@ describe( 'relay reporter', () => {
 		] );
 	} );
 
+	it( 'stops scrolling inside once the parent has sized the frame', () => {
+		run();
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: { spacefastBlock: 'sized' },
+				source: window,
+			} )
+		);
+		expect( document.documentElement.style.overflow ).toBe( '' );
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: { spacefastBlock: 'sized' },
+				source: parentWindow,
+			} )
+		);
+		expect( document.documentElement.style.overflow ).toBe( 'hidden' );
+		document.documentElement.style.overflow = '';
+	} );
+
 	it( 'ignores a measure request from anyone but the parent', () => {
 		run();
 		document.dispatchEvent( new Event( 'DOMContentLoaded' ) );
@@ -312,14 +331,29 @@ describe( 'relay reporter', () => {
 			expect( sent( 'navigate' ) ).toEqual( [] );
 		} );
 
-		it( 'treats .html pages and extensionless paths as pages', () => {
+		it( 'opens documents, archives, and media on the Space in a new tab', () => {
+			[ '/a.pdf', '/b.ZIP', '/c.mp3', '/d.png', '/e.docx' ].forEach(
+				( href ) => {
+					const a = link( href );
+					expect( click( a ).defaultPrevented ).toBe( false );
+					expect( a.getAttribute( 'target' ) ).toBe( '_blank' );
+				}
+			);
+			expect( sent( 'navigate' ) ).toEqual( [] );
+		} );
+
+		it( 'sends any other same-Space path through the relay', () => {
 			click( link( 'a.html' ) );
 			click( link( '/b.htm' ) );
 			click( link( '/v1.2/' ) );
+			click( link( '/v1.2' ) );
+			click( link( '/page.php' ) );
 			expect( sent( 'navigate' ).map( ( m ) => m.path ) ).toEqual( [
 				'/docs/a.html',
 				'/b.htm',
 				'/v1.2/',
+				'/v1.2',
+				'/page.php',
 			] );
 		} );
 
