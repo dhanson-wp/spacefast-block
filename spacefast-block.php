@@ -22,6 +22,9 @@ define( 'SPACEFAST_BLOCK_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-url.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-metadata.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-api-client.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-connection.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-rest-controller.php';
 
 /**
  * Registers the Spacefast block from the build directory.
@@ -30,3 +33,5 @@ function register_block() {
 	register_block_type( SPACEFAST_BLOCK_DIR . 'build/space' );
 }
 add_action( 'init', __NAMESPACE__ . '\register_block' );
+
+Rest_Controller::init();
