@@ -166,6 +166,12 @@ function spacefast_block_card_html( array $attributes, string $href, string $ima
  * @return string HTML.
  */
 function spacefast_block_link_html( array $attributes, string $href ): string {
+	// The link is a theme button. Core loads its button styles on demand, so ask for
+	// them here; theme `elements.button` styles still apply on top.
+	if ( wp_style_is( 'wp-block-button', 'registered' ) ) {
+		wp_enqueue_style( 'wp-block-button' );
+	}
+
 	$html = '';
 	if ( ! empty( $attributes['isPrivate'] ) && ( $attributes['showPrivateBadge'] ?? true ) ) {
 		$html .= spacefast_block_private_badge_html( $attributes );

@@ -3,6 +3,7 @@ import {
 	getDisplayNotice,
 	hasAspectRatio,
 	getCardImageUrl,
+	hasCardImage,
 	getCardTitle,
 	getClearedSpaceAttributes,
 	getEffectiveDisplay,
@@ -267,6 +268,65 @@ describe( 'getCardImageUrl', () => {
 				imageUrl: 'http://localhost/wp-content/uploads/a.png',
 			} )
 		).toBe( 'http://localhost/wp-content/uploads/a.png' );
+	} );
+} );
+
+describe( 'library image without an image URL', () => {
+	const base = {
+		showImage: true,
+		imageUrl: '',
+		imageId: 12,
+		isPrivate: false,
+	};
+
+	it( 'counts as an image', () => {
+		expect( hasCardImage( base ) ).toBe( true );
+		expect( hasCardImage( { ...base, isPrivate: true } ) ).toBe( true );
+	} );
+
+	it( 'uses the URL looked up from the media library', () => {
+		expect( getCardImageUrl( base, 'http://localhost/up/a.png' ) ).toBe(
+			'http://localhost/up/a.png'
+		);
+	} );
+
+	it( 'shows nothing yet while the media URL is loading', () => {
+		expect( getCardImageUrl( base ) ).toBe( '' );
+	} );
+
+	it( 'prefers the stored image URL', () => {
+		expect(
+			getCardImageUrl(
+				{ ...base, imageUrl: 'http://localhost/up/b.png' },
+				'http://localhost/up/a.png'
+			)
+		).toBe( 'http://localhost/up/b.png' );
+	} );
+
+	it( 'is turned off with the image', () => {
+		expect( hasCardImage( { ...base, showImage: false } ) ).toBe( false );
+	} );
+
+	it( 'is not an image for a private Space without a library image', () => {
+		expect(
+			hasCardImage( {
+				...base,
+				imageId: 0,
+				imageUrl: 'https://a.space.fast/og.png',
+				isPrivate: true,
+			} )
+		).toBe( false );
+	} );
+
+	it( 'names the image position on the card', () => {
+		expect(
+			getBlockClassNames( {
+				...base,
+				display: 'card',
+				isFrameable: true,
+				imagePosition: 'side',
+			} )
+		).toBe( 'is-display-card has-image-side' );
 	} );
 } );
 

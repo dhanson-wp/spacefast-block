@@ -1,3 +1,5 @@
+import { useSelect } from '@wordpress/data';
+
 import Branding from '../branding';
 import PrivateBadge from '../private-badge';
 import {
@@ -13,7 +15,15 @@ import {
  * @param {Object} props.attributes Block attributes.
  */
 export default function CardPreview( { attributes } ) {
-	const imageUrl = getCardImageUrl( attributes );
+	// A library image may have no URL stored with the block; look it up.
+	const mediaUrl = useSelect(
+		( select ) =>
+			attributes.imageId && ! attributes.imageUrl
+				? select( 'core' ).getMedia( attributes.imageId )?.source_url
+				: '',
+		[ attributes.imageId, attributes.imageUrl ]
+	);
+	const imageUrl = getCardImageUrl( attributes, mediaUrl );
 	const {
 		url,
 		description,

@@ -190,21 +190,38 @@ export function getCardTitle( { title, hostname } ) {
 }
 
 /**
- * The image the card shows. A private Space's own image can't be loaded by
- * visitors, so it only shows one copied into the media library.
+ * Whether the card shows an image. A media library image counts even before
+ * its URL is known. A private Space's own image can't be loaded by visitors,
+ * so it only shows one copied into the media library.
  *
  * @param {Object}  attributes           Block attributes.
  * @param {boolean} attributes.showImage Whether the card shows an image.
  * @param {string}  attributes.imageUrl  Image URL.
  * @param {number}  attributes.imageId   Media library image ID.
  * @param {boolean} attributes.isPrivate Whether the Space is private.
+ * @return {boolean} True if the card shows an image.
+ */
+export function hasCardImage( { showImage, imageUrl, imageId, isPrivate } ) {
+	if ( ! showImage ) {
+		return false;
+	}
+	return imageId > 0 || ( ! isPrivate && !! imageUrl );
+}
+
+/**
+ * The image the card shows.
+ *
+ * @param {Object} attributes          Block attributes.
+ * @param {string} attributes.imageUrl Image URL.
+ * @param {number} attributes.imageId  Media library image ID.
+ * @param {string} mediaUrl            URL of the media library image, looked up from its ID, for when `imageUrl` is empty.
  * @return {string} Image URL, or '' for none.
  */
-export function getCardImageUrl( { showImage, imageUrl, imageId, isPrivate } ) {
-	if ( ! showImage || ( isPrivate && ! imageId ) ) {
+export function getCardImageUrl( attributes, mediaUrl = '' ) {
+	if ( ! hasCardImage( attributes ) ) {
 		return '';
 	}
-	return imageUrl || '';
+	return attributes.imageUrl || ( attributes.imageId ? mediaUrl : '' ) || '';
 }
 
 /**
@@ -216,7 +233,7 @@ export function getCardImageUrl( { showImage, imageUrl, imageId, isPrivate } ) {
 export function getBlockClassNames( attributes ) {
 	const display = getEffectiveDisplay( attributes );
 	const classNames = [ `is-display-${ display }` ];
-	if ( display === 'card' && getCardImageUrl( attributes ) ) {
+	if ( display === 'card' && hasCardImage( attributes ) ) {
 		classNames.push( `has-image-${ attributes.imagePosition || 'top' }` );
 	}
 	if ( attributes.isPrivate ) {

@@ -238,6 +238,20 @@ final class SpaceDisplayTest extends TestCase {
 		);
 	}
 
+	public function test_a_library_image_shows_without_an_image_url() {
+		$this->assertSame( 'attachment', Space_Display::card_image_source( array( 'imageId' => 12 ) ) );
+		$this->assertSame(
+			'is-display-card has-image-side',
+			Space_Display::block_class_names(
+				array(
+					'display'       => 'card',
+					'imageId'       => 12,
+					'imagePosition' => 'side',
+				)
+			)
+		);
+	}
+
 	public function test_a_private_space_shows_no_image_without_a_library_image() {
 		$this->assertSame(
 			'none',
