@@ -59,7 +59,9 @@
 	opacity: 0;
 }
 
-// The note above a Space whose host the server hasn't confirmed.
+// The note above a Space whose host the server hasn't confirmed. It takes a
+// row of its own in the link mode's wrapping flex row.
 .wp-block-spacefast-space__host-notice {
+	flex: 1 0 100%;
 	margin: 0 0 12px;
 }
