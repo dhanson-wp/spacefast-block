@@ -1,0 +1,76 @@
+import { isBackdropClick, shouldOpenModal, supportsModal } from '../modal';
+
+describe( 'shouldOpenModal', () => {
+	const plain = {
+		button: 0,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+	};
+
+	it( 'opens on a plain primary click when dialogs are supported', () => {
+		expect( shouldOpenModal( plain, true ) ).toBe( true );
+	} );
+
+	it.each( [ 'metaKey', 'ctrlKey', 'shiftKey', 'altKey' ] )(
+		'lets the browser handle a click with %s held',
+		( key ) => {
+			expect( shouldOpenModal( { ...plain, [ key ]: true }, true ) ).toBe(
+				false
+			);
+		}
+	);
+
+	it.each( [ 1, 2 ] )(
+		'lets the browser handle button %d (middle or secondary)',
+		( button ) => {
+			expect( shouldOpenModal( { ...plain, button }, true ) ).toBe(
+				false
+			);
+		}
+	);
+
+	it( 'lets the link work when dialogs are not supported', () => {
+		expect( shouldOpenModal( plain, false ) ).toBe( false );
+	} );
+
+	it( 'lets the link work when the click was already handled', () => {
+		expect(
+			shouldOpenModal( { ...plain, defaultPrevented: true }, true )
+		).toBe( false );
+	} );
+} );
+
+describe( 'supportsModal', () => {
+	it( 'is false without HTMLDialogElement', () => {
+		expect( supportsModal( {} ) ).toBe( false );
+	} );
+
+	it( 'is false when showModal is missing', () => {
+		expect( supportsModal( { HTMLDialogElement: class {} } ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'is true when showModal exists', () => {
+		function Dialog() {}
+		Dialog.prototype.showModal = () => {};
+		expect( supportsModal( { HTMLDialogElement: Dialog } ) ).toBe( true );
+	} );
+} );
+
+describe( 'isBackdropClick', () => {
+	it( 'is true when the click landed on the dialog itself', () => {
+		const dialog = {};
+		expect( isBackdropClick( dialog, dialog ) ).toBe( true );
+	} );
+
+	it( 'is false when the click landed inside the dialog', () => {
+		expect( isBackdropClick( {}, {} ) ).toBe( false );
+	} );
+
+	it( 'is false without a dialog', () => {
+		expect( isBackdropClick( null, null ) ).toBe( false );
+	} );
+} );

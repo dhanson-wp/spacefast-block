@@ -207,3 +207,129 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 	align-items: center;
 	gap: var(--wp--style--block-gap, 0.75rem);
 }
+
+// Modal: a native dialog, nearly full screen. The page can't scroll behind it.
+html.spacefast-modal-open {
+	overflow: hidden;
+}
+
+:where(.wp-block-spacefast-space__modal) {
+	width: min(96vw, 1600px);
+	max-width: none;
+	height: 96vh; // Fallback for browsers without dvh.
+	height: 96dvh;
+	max-height: none;
+	padding: 0;
+	overflow: hidden;
+	border: 0;
+	border-radius: var(--wp--custom--border--radius, 8px);
+	background: var(--wp--preset--color--base, #fff);
+	color: var(--wp--preset--color--contrast, #111);
+}
+
+// Only style the open state; a display on the closed dialog would show it.
+:where(.wp-block-spacefast-space__modal[open]) {
+	display: flex;
+	flex-direction: column;
+}
+
+.wp-block-spacefast-space__modal::backdrop {
+	background: rgb(0 0 0 / 60%);
+}
+
+:where(.wp-block-spacefast-space__modal-header) {
+	display: flex;
+	flex: none;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: var(--wp--preset--spacing--20, 0.5rem);
+	padding-block: var(--wp--preset--spacing--10, 0.25rem);
+	padding-inline: var(--wp--preset--spacing--30, 0.75rem) var(--wp--preset--spacing--20, 0.5rem);
+	border-bottom: 1px solid $spacefast-muted-border;
+	background: var(--wp--preset--color--base, #fff);
+	color: var(--wp--preset--color--contrast, #111);
+	font-family: inherit;
+	font-size: var(--wp--preset--font-size--small, 0.875rem);
+	line-height: 1.4;
+}
+
+:where(.wp-block-spacefast-space__modal-title) {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:where(.wp-block-spacefast-space__modal-link) {
+	flex: none;
+	color: inherit;
+	white-space: nowrap;
+}
+
+:where(.wp-block-spacefast-space__modal-close) {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+:where(.wp-block-spacefast-space__modal-close:hover) {
+	background: color-mix(in srgb, currentcolor 10%, transparent);
+}
+
+:where(.wp-block-spacefast-space__modal-close:focus-visible),
+:where(.wp-block-spacefast-space__modal-link:focus-visible) {
+	outline: 2px solid currentcolor;
+	outline-offset: 2px;
+}
+
+:where(.wp-block-spacefast-space__modal-body) {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+}
+
+// On a phone the header keeps the title, link, and close button.
+@media (max-width: 480px) {
+
+	.wp-block-spacefast-space__modal .wp-block-spacefast-space__branding {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+	:where(.wp-block-spacefast-space__modal[open]) {
+		animation: spacefast-modal-in 0.2s ease-out;
+	}
+
+	:where(.wp-block-spacefast-space__modal[open])::backdrop {
+		animation: spacefast-modal-backdrop-in 0.2s ease-out;
+	}
+}
+
+@keyframes spacefast-modal-in {
+
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem) scale(0.98);
+	}
+}
+
+@keyframes spacefast-modal-backdrop-in {
+
+	from {
+		opacity: 0;
+	}
+}

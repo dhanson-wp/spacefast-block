@@ -59,6 +59,19 @@ function spacefast_block_private_badge_html( array $attributes ): string {
 }
 
 /**
+ * Whether the block opens its Space in a modal: the click action asks for one
+ * and the Space can be framed. Only the card and link modes have a trigger.
+ *
+ * @param array $attributes Block attributes.
+ * @return bool
+ */
+function spacefast_block_has_modal( array $attributes ): bool {
+	return 'modal' === ( $attributes['clickAction'] ?? 'modal' )
+		&& ( $attributes['isFrameable'] ?? true )
+		&& in_array( Space_Display::effective_display( $attributes ), array( 'card', 'link' ), true );
+}
+
+/**
  * Attributes for a card or link anchor: a plain link to the Space. It opens in a
  * new tab only when asked, and carries the hook the modal script listens for
  * only when a modal can show the Space.
@@ -73,7 +86,7 @@ function spacefast_block_trigger_attributes( array $attributes, string $href ): 
 	if ( ! empty( $attributes['openInNewTab'] ) ) {
 		$html .= ' target="_blank" rel="noopener"';
 	}
-	if ( 'modal' === ( $attributes['clickAction'] ?? 'modal' ) && ( $attributes['isFrameable'] ?? true ) ) {
+	if ( spacefast_block_has_modal( $attributes ) ) {
 		$html .= ' data-wp-on--click="actions.open"';
 	}
 	return $html;
@@ -238,6 +251,49 @@ function spacefast_block_frame_html( array $attributes, array $args = array() ):
 }
 
 /**
+ * The modal: a native dialog with a header (title, branding mark, optional
+ * "Open in new tab" link, close button) and the Space's frame. The frame has no
+ * `src`; the view script sets it from the block context on first open.
+ *
+ * @param array  $attributes Block attributes.
+ * @param string $href       Link to the Space.
+ * @return string HTML.
+ */
+function spacefast_block_modal_html( array $attributes, string $href ): string {
+	$title_id   = wp_unique_id( 'spacefast-modal-title-' );
+	$close_path = 'm13.06 12 6.47-6.47-1.06-1.06L12 10.94 5.53 4.47 4.47 5.53 10.94 12l-6.47 6.47 1.06 1.06L12 13.06l6.47 6.47 1.06-1.06L13.06 12Z';
+
+	$html  = '<dialog class="wp-block-spacefast-space__modal" aria-labelledby="' . esc_attr( $title_id ) . '"'
+		. ' data-wp-on--click="actions.closeOnBackdrop" data-wp-on--close="callbacks.onDialogClose">';
+	$html .= '<div class="wp-block-spacefast-space__modal-header">';
+	$html .= '<span class="wp-block-spacefast-space__modal-title" id="' . esc_attr( $title_id ) . '">'
+		. esc_html( Space_Display::card_title( $attributes ) ) . '</span>';
+	if ( $attributes['showBranding'] ?? true ) {
+		$html .= spacefast_block_branding_html();
+	}
+	if ( $attributes['modalExternalLink'] ?? true ) {
+		$html .= '<a class="wp-block-spacefast-space__modal-link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener">'
+			. esc_html__( 'Open in new tab', 'spacefast-block' )
+			. '</a>';
+	}
+	$html .= '<button type="button" class="wp-block-spacefast-space__modal-close" autofocus aria-label="' . esc_attr__( 'Close', 'spacefast-block' ) . '" data-wp-on--click="actions.close">'
+		. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" focusable="false">'
+		. '<path d="' . esc_attr( $close_path ) . '"/></svg></button>';
+	$html .= '</div>';
+	$html .= '<div class="wp-block-spacefast-space__modal-body">'
+		. spacefast_block_frame_html(
+			$attributes,
+			array(
+				'src'     => false,
+				'loading' => '',
+			)
+		)
+		. '</div></dialog>';
+
+	return $html;
+}
+
+/**
  * The inline mode: an optional title bar above the frame.
  *
  * @param array  $attributes Block attributes.
@@ -291,12 +347,29 @@ function spacefast_block_render( array $attributes ): string {
 		$inner = spacefast_block_inline_html( $attributes, $href );
 	}
 
+	$has_modal = spacefast_block_has_modal( $attributes );
+	if ( $has_modal ) {
+		$inner .= spacefast_block_modal_html( $attributes, $href );
+	}
+
 	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes ) );
 	$height  = Space_Display::min_height( $attributes );
 	if ( null !== $height ) {
 		$wrapper['style'] = 'min-height:' . $height . ';';
 	}
 
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped output, and every part of $inner is escaped where it is built.
-	return '<div ' . get_block_wrapper_attributes( $wrapper ) . '>' . $inner . '</div>';
+	// The store and its per-block context are only added when there is a modal to drive.
+	$interactive = '';
+	if ( $has_modal ) {
+		$interactive = ' data-wp-interactive="spacefast/space" '
+			. wp_interactivity_data_wp_context(
+				array(
+					'frameUrl' => $href,
+					'isOpen'   => false,
+				)
+			);
+	}
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() and wp_interactivity_data_wp_context() return escaped output, and every part of $inner is escaped where it is built.
+	return '<div ' . get_block_wrapper_attributes( $wrapper ) . $interactive . '>' . $inner . '</div>';
 }
