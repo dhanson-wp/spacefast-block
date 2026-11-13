@@ -35,6 +35,7 @@
 		"showBranding": { "type": "boolean", "default": true },
 		"hideHeader": { "type": "boolean", "default": false },
 		"hideFooter": { "type": "boolean", "default": false },
+		"fitContent": { "type": "boolean", "default": true },
 		"imagePosition": {
 			"type": "string",
 			"enum": [ "top", "side" ],

@@ -10,6 +10,13 @@ import {
 	computeLayout,
 	pickFirstVisible,
 } from './utils/takeover';
+import {
+	HEIGHT_TIMEOUT,
+	clampHeight,
+	navigationTarget,
+	readMessage,
+	shouldFallBack,
+} from './utils/relay';
 
 const { store, getContext, getElement } = interactivity;
 
@@ -143,12 +150,32 @@ store( 'spacefast/space', {
 		/**
 		 * The full-page block: keep it between the site header and footer. The
 		 * body classes added in PHP already lay the page out; this measures the
-		 * header, footer, and admin bar and writes the exact offsets.
+		 * header, footer, and admin bar and writes the exact offsets. When the
+		 * frame loads the relay, it also sizes the Space to the relayed page.
 		 *
 		 * @return {() => void} Cleanup.
 		 */
 		initTakeover() {
-			return startTakeover( document, window );
+			const stopTakeover = startTakeover( document, window );
+			const { fit } = getContext();
+			const stopRelay = fit
+				? startRelay(
+						getElement().ref,
+						{
+							spaceUrl: fit.spaceUrl,
+							directUrl: fit.directUrl,
+							relayBase: fit.relayBase,
+							sandbox: fit.sandbox,
+							allowFullscreen: fit.allowFullscreen,
+						},
+						document,
+						window
+					)
+				: null;
+			return () => {
+				stopRelay?.();
+				stopTakeover();
+			};
 		},
 	},
 } );
@@ -251,6 +278,149 @@ function startTakeover( doc, win ) {
 		root.classList.remove( READY_CLASS );
 		if ( frame ) {
 			win.cancelAnimationFrame( frame );
+		}
+	};
+}
+
+/**
+ * Show the Space at its full length: the frame loads the relay's copy of the
+ * page, which reports its height and links by postMessage. The height goes to
+ * `--spacefast-space-height` on <html>, which the measured layout uses for the
+ * Space and the footer below it. If the relayed page fails before it is ready,
+ * reports no height in time, or keeps growing, the frame loads the Space
+ * directly instead, once, and the layout goes back to one screen.
+ *
+ * @param {Element}  wrapper             The block wrapper.
+ * @param {Object}   fit                 From the block context.
+ * @param {string}   fit.spaceUrl        The Space's URL.
+ * @param {string}   fit.directUrl       The Space page the frame shows.
+ * @param {string}   fit.relayBase       The REST namespace URL.
+ * @param {string}   fit.sandbox         The sandbox for framing the Space directly.
+ * @param {boolean}  fit.allowFullscreen Whether the direct frame allows fullscreen.
+ * @param {Document} doc                 The document.
+ * @param {Window}   win                 The window.
+ * @return {?(() => void)} Stops listening, or null when there is no frame.
+ */
+function startRelay( wrapper, fit, doc, win ) {
+	const frame = wrapper.querySelector( '.wp-block-spacefast-space__frame' );
+	if ( ! frame ) {
+		return null;
+	}
+	const root = doc.documentElement;
+	const adminBar = doc.getElementById( 'wpadminbar' );
+	const state = { ready: false, hasHeight: false, fellBack: false };
+	let directUrl = fit.directUrl;
+	let reported = 0;
+	let timer = 0;
+
+	const adminBarHeight = () =>
+		adminBar && isLaidOut( adminBar )
+			? adminBar.getBoundingClientRect().height
+			: 0;
+
+	// The frame's offset covers a title bar above it, if the block shows one.
+	const applyHeight = () => {
+		if ( ! reported || state.fellBack ) {
+			return;
+		}
+		const height =
+			clampHeight( reported, win.innerHeight - adminBarHeight() ) +
+			frame.offsetTop;
+		root.style.setProperty( '--spacefast-space-height', `${ height }px` );
+	};
+
+	const resetHeight = () => {
+		reported = 0;
+		root.style.removeProperty( '--spacefast-space-height' );
+	};
+
+	// Scroll the page to a point in the Space, measured from its top. With
+	// `onlyIfAbove`, only when that point has scrolled up out of view.
+	const scrollToSpace = ( offset, onlyIfAbove = false ) => {
+		const top =
+			wrapper.getBoundingClientRect().top + offset - adminBarHeight();
+		if ( ! onlyIfAbove || top < 0 ) {
+			win.scrollTo( 0, win.scrollY + top );
+		}
+	};
+
+	const startTimer = () => {
+		win.clearTimeout( timer );
+		timer = win.setTimeout(
+			() => handle( { type: 'timeout' } ),
+			HEIGHT_TIMEOUT
+		);
+	};
+
+	const onMessage = ( event ) => {
+		const message = readMessage( event, frame.contentWindow );
+		if ( message ) {
+			handle( message );
+		}
+	};
+
+	const stop = () => {
+		win.clearTimeout( timer );
+		win.removeEventListener( 'message', onMessage );
+		win.removeEventListener( 'resize', applyHeight );
+	};
+
+	const fallBack = () => {
+		state.fellBack = true;
+		stop();
+		resetHeight();
+		wrapper.classList.remove( 'is-fit-content' );
+		wrapper.classList.add( 'is-fit-fallback' );
+		frame.removeAttribute( 'scrolling' );
+		frame.setAttribute( 'sandbox', fit.sandbox );
+		if ( fit.allowFullscreen ) {
+			frame.setAttribute( 'allowfullscreen', '' );
+		}
+		frame.setAttribute( 'src', directUrl );
+	};
+
+	function handle( message ) {
+		if ( shouldFallBack( message, state ) ) {
+			fallBack();
+			return;
+		}
+		if ( message.type === 'height' ) {
+			state.hasHeight = true;
+			reported = message.height;
+			applyHeight();
+		} else if ( message.type === 'ready' ) {
+			state.ready = true;
+		} else if ( message.type === 'scroll' ) {
+			scrollToSpace( frame.offsetTop + message.top );
+		} else if ( message.type === 'navigate' ) {
+			const target = navigationTarget(
+				fit.spaceUrl,
+				message.path,
+				fit.relayBase
+			);
+			if ( ! target ) {
+				return;
+			}
+			directUrl = target.direct;
+			state.ready = false;
+			state.hasHeight = false;
+			resetHeight();
+			scrollToSpace( 0, true );
+			frame.setAttribute( 'src', target.relay );
+			startTimer();
+		}
+	}
+
+	win.addEventListener( 'message', onMessage );
+	win.addEventListener( 'resize', applyHeight );
+	startTimer();
+	// The page may have reported before this script ran; ask again.
+	frame.contentWindow?.postMessage( { spacefastBlock: 'measure' }, '*' );
+
+	return () => {
+		stop();
+		if ( ! state.fellBack ) {
+			resetHeight();
 		}
 	};
 }

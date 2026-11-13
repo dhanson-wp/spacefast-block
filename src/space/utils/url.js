@@ -29,7 +29,7 @@ const UNSAFE_PATH_CHARACTERS = /[\x00-\x20\x7f\\@]/;
  * @param {string} host Lowercased host.
  * @return {boolean} True for a public-looking DNS name.
  */
-function isDnsName( host ) {
+export function isDnsName( host ) {
 	if (
 		host.length > 253 ||
 		! host.includes( '.' ) ||

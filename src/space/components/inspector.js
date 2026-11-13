@@ -74,7 +74,11 @@ export default function SpaceInspector( {
 				{ display === 'fullpage' && (
 					<Panel
 						label={ __( 'Full page', 'spacefast-block' ) }
-						resetKeys={ [ 'hideHeader', 'hideFooter' ] }
+						resetKeys={ [
+							'hideHeader',
+							'hideFooter',
+							'fitContent',
+						] }
 						setAttributes={ setAttributes }
 						clientId={ clientId }
 					>
@@ -86,6 +90,18 @@ export default function SpaceInspector( {
 						<ToggleItem
 							attribute="hideFooter"
 							label={ __( 'Hide footer', 'spacefast-block' ) }
+							{ ...itemProps }
+						/>
+						<ToggleItem
+							attribute="fitContent"
+							label={ __(
+								'Show the whole Space',
+								'spacefast-block'
+							) }
+							help={ __(
+								"The page scrolls through the Space like any other page. Turn this off if the Space doesn't look right; it then fills one screen and scrolls inside.",
+								'spacefast-block'
+							) }
 							{ ...itemProps }
 						/>
 					</Panel>

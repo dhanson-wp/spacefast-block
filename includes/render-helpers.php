@@ -10,12 +10,20 @@
  * @package Spacefast_Block
  */
 
+use Spacefast_Block\Relay_Controller;
 use Spacefast_Block\Space_Display;
+use Spacefast_Block\Space_Relay;
 use Spacefast_Block\Space_Url;
 use Spacefast_Block\Takeover;
 use Spacefast_Block\Verified_Hosts;
 
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * The sandbox of a frame that loads the Space directly. src/space/view.js puts
+ * it back when a relayed full-page frame falls back to the Space.
+ */
+const SPACEFAST_BLOCK_FRAME_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads';
 
 /**
  * The Spacefast mark, matching src/space/icon.js. The path data lives only here.
@@ -286,6 +294,9 @@ function spacefast_block_link_html( array $attributes, string $href, bool $has_m
  * Supported `$args`:
  * - `src`     (bool)        Print the `src` attribute. Default true; the modal passes false and sets it when it opens.
  * - `loading` (string|null) `lazy`, `eager`, or '' for no attribute. Default null: lazy when the block asks for it.
+ * - `relay`   (string)      The relay URL to load instead of the Space. The frame then
+ *                           doesn't scroll, has no fullscreen, and its sandbox never
+ *                           includes `allow-same-origin`, since the relay is on this site.
  *
  * @param array $attributes Block attributes.
  * @param array $args       Options, described above.
@@ -307,19 +318,28 @@ function spacefast_block_frame_html( array $attributes, array $args = array() ):
 
 	$title = ! empty( $attributes['title'] ) ? $attributes['title'] : __( 'Spacefast Space', 'spacefast-block' );
 
+	$relay = (string) ( $args['relay'] ?? '' );
+
 	$html = '<iframe class="wp-block-spacefast-space__frame"';
-	if ( $args['src'] ?? true ) {
+	if ( '' !== $relay ) {
+		$html .= ' src="' . esc_url( $relay ) . '"';
+	} elseif ( $args['src'] ?? true ) {
 		$html .= ' src="' . esc_url( $src ) . '"';
 	}
 	$html .= ' title="' . esc_attr( $title ) . '"';
 	if ( '' !== $loading ) {
 		$html .= ' loading="' . esc_attr( $loading ) . '"';
 	}
+	if ( '' !== $relay ) {
+		$html .= ' scrolling="no" referrerpolicy="strict-origin-when-cross-origin"'
+			. ' sandbox="' . esc_attr( Space_Relay::SANDBOX ) . '"></iframe>';
+		return $html;
+	}
 	if ( $attributes['allowFullscreen'] ?? true ) {
 		$html .= ' allowfullscreen';
 	}
 	$html .= ' referrerpolicy="strict-origin-when-cross-origin"'
-		. ' sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"></iframe>';
+		. ' sandbox="' . esc_attr( SPACEFAST_BLOCK_FRAME_SANDBOX ) . '"></iframe>';
 
 	return $html;
 }
@@ -399,11 +419,15 @@ function spacefast_block_inline_html( array $attributes, string $href, array $fr
  * header or footer is hidden, a "Back to site" link, shown on focus, replaces
  * the site navigation it took away.
  *
+ * When the Space is shown at its full length, the frame loads `$relay`, the
+ * relay's copy of the page, instead of the Space.
+ *
  * @param array  $attributes Block attributes.
  * @param string $href       Link to the Space.
+ * @param string $relay      Relay URL for the frame, or '' to frame the Space.
  * @return string HTML.
  */
-function spacefast_block_takeover_html( array $attributes, string $href ): string {
+function spacefast_block_takeover_html( array $attributes, string $href, string $relay = '' ): string {
 	$html = '';
 	if ( ! empty( $attributes['hideHeader'] ) || ! empty( $attributes['hideFooter'] ) ) {
 		$html .= '<a class="wp-block-spacefast-space__skip-link" href="' . esc_url( home_url( '/' ) ) . '">'
@@ -412,7 +436,14 @@ function spacefast_block_takeover_html( array $attributes, string $href ): strin
 	}
 	$html .= '<h1 class="wp-block-spacefast-space__visually-hidden">' . esc_html( Space_Display::card_title( $attributes ) ) . '</h1>';
 
-	return $html . spacefast_block_inline_html( $attributes, $href, array( 'loading' => 'eager' ) );
+	return $html . spacefast_block_inline_html(
+		$attributes,
+		$href,
+		array(
+			'loading' => 'eager',
+			'relay'   => $relay,
+		)
+	);
 }
 
 /**
@@ -439,9 +470,14 @@ function spacefast_block_render( array $attributes ): string {
 	$display     = Space_Display::effective_display( $attributes, $host_may_be_framed );
 	$is_takeover = 'fullpage' === $display && Takeover::claim();
 	$has_modal   = spacefast_block_has_modal( $attributes, $host_may_be_framed );
-	$inner       = '';
+	// A takeover shows the Space at its full length through the relay unless
+	// the block turns that off.
+	$relay = $is_takeover && ( $attributes['fitContent'] ?? true )
+		? Space_Relay::relay_url( Relay_Controller::relay_base(), 'page', $href )
+		: '';
+	$inner = '';
 	if ( $is_takeover ) {
-		$inner = spacefast_block_takeover_html( $attributes, $href );
+		$inner = spacefast_block_takeover_html( $attributes, $href, $relay );
 	} elseif ( 'card' === $display ) {
 		$image_html = spacefast_block_card_image_html( $attributes );
 		if ( '' === $image_html ) {
@@ -461,7 +497,9 @@ function spacefast_block_render( array $attributes ): string {
 	}
 
 	$wrapper = array(
-		'class' => Space_Display::block_class_names( $attributes, $host_may_be_framed ) . ( $is_takeover ? ' is-fullpage-takeover' : '' ),
+		'class' => Space_Display::block_class_names( $attributes, $host_may_be_framed )
+			. ( $is_takeover ? ' is-fullpage-takeover' : '' )
+			. ( '' !== $relay ? ' is-fit-content' : '' ),
 		'style' => '',
 	);
 	// The link mode put color and font size on its button already.
@@ -484,6 +522,21 @@ function spacefast_block_render( array $attributes ): string {
 	$interactive = '';
 	if ( $is_takeover ) {
 		$interactive = ' data-wp-interactive="spacefast/space" data-wp-init="callbacks.initTakeover"';
+		if ( '' !== $relay ) {
+			// What the view script needs to size the relayed frame, follow its
+			// links, and frame the Space directly if the relay doesn't work.
+			$interactive .= ' ' . wp_interactivity_data_wp_context(
+				array(
+					'fit' => array(
+						'spaceUrl'        => (string) Space_Url::normalize( $href ),
+						'directUrl'       => $href,
+						'relayBase'       => Relay_Controller::relay_base(),
+						'sandbox'         => SPACEFAST_BLOCK_FRAME_SANDBOX,
+						'allowFullscreen' => (bool) ( $attributes['allowFullscreen'] ?? true ),
+					),
+				)
+			);
+		}
 	} elseif ( $has_modal ) {
 		$interactive = ' data-wp-interactive="spacefast/space" '
 			. wp_interactivity_data_wp_context( array( 'frameUrl' => $href ) );
