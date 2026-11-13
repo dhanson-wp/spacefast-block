@@ -1,6 +1,7 @@
 node_modules/
 vendor/
 build/
+spacefast-block.zip
 .superpowers/
 .DS_Store
 .phpunit.result.cache

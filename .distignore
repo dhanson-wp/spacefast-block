@@ -9,8 +9,9 @@
 .claude
 docs
 tests
-src
+src/space/utils/test
 node_modules
+spacefast-block.zip
 vendor
 composer.json
 composer.lock

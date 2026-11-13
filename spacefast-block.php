@@ -3,7 +3,7 @@
  * Plugin Name:       Spacefast Block
  * Description:       Show any Spacefast Space inline, full page, as a card, or as a link.
  * Version:           0.1.0
- * Requires at least: 6.6
+ * Requires at least: 6.7
  * Requires PHP:      7.4
  * Author:            Derek Hanson
  * License:           GPL-2.0-or-later

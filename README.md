@@ -4,7 +4,7 @@ A WordPress block that shows a [Spacefast](https://spacefast.com/) Space inline,
 
 ## Requirements
 
-- WordPress 6.6 or later
+- WordPress 6.7 or later
 - PHP 7.4 or later
 - Node.js and npm, to build the editor and view scripts
 - Composer, for PHP linting and tests
@@ -28,6 +28,7 @@ Use `npm start` to rebuild on change. The plugin only works after a build, becau
 | `npm run lint:js` | ESLint |
 | `npm run lint:css` | Stylelint |
 | `npm run test:unit` | Jest unit tests |
+| `npm run plugin-zip` | Release zip, `spacefast-block.zip` |
 | `composer lint` | PHP_CodeSniffer with WordPress standards |
 | `composer test` | PHPUnit |
 
@@ -39,7 +40,7 @@ The project folder is symlinked into a WordPress Studio site's `wp-content/plugi
 
 ```
 spacefast-block.php   Plugin header, constants, block registration
-uninstall.php         Removes stored keys and cached lookups
+uninstall.php         Removes stored keys, confirmed hosts, and cached lookups
 includes/             PHP: URL rules, metadata, API client, connection, REST routes, takeover
 src/space/            Block source: block.json, edit, render.php, view.js, styles
   components/         Editor UI (picker, inspector, previews)
@@ -51,7 +52,16 @@ docs/                 Design and plan
 
 ## Releasing
 
-`.distignore` lists what stays out of the release zip: source, tests, docs, and config. A release contains `build/`, `includes/`, `readme.txt`, `LICENSE`, `uninstall.php`, and the main file.
+Build first, then make the zip:
+
+```
+npm run build
+npm run plugin-zip
+```
+
+That writes `spacefast-block.zip`, holding a `spacefast-block/` folder with the files named in the `files` list in `package.json`: `build/`, `includes/`, `src/` (without its tests), the main file, `uninstall.php`, `readme.txt`, and `LICENSE`. npm always adds `package.json` and this README too. `build/` isn't tracked, so the zip only has scripts if you built them first.
+
+`.distignore` (for `wp dist-archive`) keeps tests, docs, and config out and keeps `src/` in, so a release carries the source of its scripts. `.gitattributes` does the same for GitHub archives, which also keep `package.json` and `package-lock.json` so they can be built.
 
 ## License
 

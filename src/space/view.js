@@ -16,7 +16,7 @@ const { store, getContext, getElement } = interactivity;
 // `withSyncEvent` arrived in WordPress 6.8, where `preventDefault()` needs it.
 // Earlier versions run handlers synchronously, so the handler works as it is.
 // It is looked up by a variable name so the bundle doesn't import it by name,
-// which would fail to load on WordPress 6.6 and 6.7.
+// which would fail to load on WordPress 6.7.
 const SYNC_EVENT_EXPORT = 'withSyncEvent';
 const withSyncEvent =
 	interactivity[ SYNC_EVENT_EXPORT ] ?? ( ( handler ) => handler );

@@ -4,12 +4,23 @@
 	"description": "Show any Spacefast Space inline, full page, as a card, or as a link.",
 	"license": "GPL-2.0-or-later",
 	"private": true,
+	"files": [
+		"build",
+		"includes",
+		"src",
+		"!src/**/test",
+		"spacefast-block.php",
+		"uninstall.php",
+		"readme.txt",
+		"LICENSE"
+	],
 	"scripts": {
 		"build": "wp-scripts build --experimental-modules --webpack-copy-php",
 		"start": "wp-scripts start --experimental-modules --webpack-copy-php",
 		"lint:js": "wp-scripts lint-js",
 		"lint:css": "wp-scripts lint-style",
-		"test:unit": "wp-scripts test-unit-jest --passWithNoTests"
+		"test:unit": "wp-scripts test-unit-jest --passWithNoTests",
+		"plugin-zip": "wp-scripts plugin-zip"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.13",
