@@ -22,6 +22,7 @@ define( 'SPACEFAST_BLOCK_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-url.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-metadata.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-lookup.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-api-client.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-connection.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-rest-controller.php';

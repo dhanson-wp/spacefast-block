@@ -181,8 +181,16 @@ class Connection {
 			);
 		}
 
+		if ( ! self::is_trusted_verification_url( (string) $data['verificationUrl'] ) ) {
+			return new WP_Error(
+				'spacefast_bad_response',
+				__( 'Spacefast returned an unexpected response.', 'spacefast-block' ),
+				array( 'status' => 502 )
+			);
+		}
+
 		$ttl = max( 60, (int) strtotime( (string) $data['expiresAt'] ) - time() );
-		set_transient( self::TRANSIENT_PREFIX . $user_id, (string) $data['deviceCode'], $ttl );
+		set_transient( self::TRANSIENT_PREFIX . $user_id, self::encrypt( (string) $data['deviceCode'], wp_salt( 'auth' ) ), $ttl );
 
 		return array(
 			'userCode'        => (string) $data['userCode'],
@@ -199,9 +207,10 @@ class Connection {
 	 * @return string One of `pending`, `connected`, `denied`, `expired`.
 	 */
 	public static function poll( int $user_id ): string {
-		$device_code = get_transient( self::TRANSIENT_PREFIX . $user_id );
-		if ( ! is_string( $device_code ) || '' === $device_code ) {
-			return 'expired';
+		$stored      = get_transient( self::TRANSIENT_PREFIX . $user_id );
+		$device_code = is_string( $stored ) && '' !== $stored ? self::decrypt( $stored, wp_salt( 'auth' ) ) : null;
+		if ( null === $device_code ) {
+			return self::reconcile_status( 'expired', self::is_connected( $user_id ) );
 		}
 
 		$data = Api_Client::request( 'POST', '/auth/device/poll', array( 'deviceCode' => $device_code ) );
@@ -212,7 +221,7 @@ class Connection {
 				return 'pending';
 			}
 			delete_transient( self::TRANSIENT_PREFIX . $user_id );
-			return 'expired';
+			return self::reconcile_status( 'expired', self::is_connected( $user_id ) );
 		}
 
 		$result = self::interpret_poll( $data );
@@ -222,6 +231,42 @@ class Connection {
 		if ( null !== $result['secret'] ) {
 			self::set_key( $user_id, $result['secret'] );
 		}
-		return $result['status'];
+		return self::reconcile_status( $result['status'], null !== $result['secret'] || self::is_connected( $user_id ) );
+	}
+
+	/**
+	 * Turns `expired` into `connected` when the user already has a key.
+	 *
+	 * Two overlapping polls can race: the first stores the key, the second sees
+	 * a consumed code. The user is connected, so say so.
+	 *
+	 * @param string $status       Status from the poll.
+	 * @param bool   $is_connected Whether the user already has a readable key.
+	 * @return string
+	 */
+	public static function reconcile_status( string $status, bool $is_connected ): string {
+		return 'expired' === $status && $is_connected ? 'connected' : $status;
+	}
+
+	/**
+	 * Whether a verification URL is https on spacefast.com or a subdomain of it.
+	 *
+	 * @param string $url URL from the API.
+	 * @return bool
+	 */
+	public static function is_trusted_verification_url( string $url ): bool {
+		if ( preg_match( '/[\x00-\x20\x7f\\\\]/', $url ) ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure PHP, tested without WordPress.
+		$parts = parse_url( $url );
+		if ( ! is_array( $parts ) || ! isset( $parts['scheme'], $parts['host'] ) || 'https' !== strtolower( $parts['scheme'] ) ) {
+			return false;
+		}
+		if ( isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] ) ) {
+			return false;
+		}
+		$host = strtolower( rtrim( $parts['host'], '.' ) );
+		return 'spacefast.com' === $host || '.spacefast.com' === substr( $host, -14 );
 	}
 }

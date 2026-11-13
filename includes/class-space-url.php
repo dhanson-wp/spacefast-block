@@ -138,7 +138,7 @@ class Space_Url {
 	 * @param string $host Lowercased host.
 	 * @return bool
 	 */
-	private static function is_dns_name( string $host ): bool {
+	public static function is_dns_name( string $host ): bool {
 		if ( strlen( $host ) > 253 || false === strpos( $host, '.' ) ) {
 			return false;
 		}

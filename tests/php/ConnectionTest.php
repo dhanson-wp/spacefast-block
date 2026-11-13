@@ -81,4 +81,32 @@ final class ConnectionTest extends TestCase {
 			'missing'  => array( null, 'expired' ),
 		);
 	}
+
+	/**
+	 * @dataProvider verification_urls
+	 */
+	public function test_verification_url_must_be_spacefast_https( $url, $trusted ) {
+		$this->assertSame( $trusted, Connection::is_trusted_verification_url( $url ) );
+	}
+
+	public function verification_urls() {
+		return array(
+			'apex'         => array( 'https://spacefast.com/device', true ),
+			'subdomain'    => array( 'https://app.spacefast.com/device?code=AB', true ),
+			'http'         => array( 'http://spacefast.com/device', false ),
+			'lookalike'    => array( 'https://evilspacefast.com/device', false ),
+			'suffix trick' => array( 'https://spacefast.com.evil.com/device', false ),
+			'credentials'  => array( 'https://spacefast.com@evil.com/device', false ),
+			'port'         => array( 'https://spacefast.com:8443/device', false ),
+			'javascript'   => array( 'javascript:alert(1)', false ),
+			'empty'        => array( '', false ),
+		);
+	}
+
+	public function test_expired_becomes_connected_when_already_connected() {
+		$this->assertSame( 'connected', Connection::reconcile_status( 'expired', true ) );
+		$this->assertSame( 'expired', Connection::reconcile_status( 'expired', false ) );
+		$this->assertSame( 'denied', Connection::reconcile_status( 'denied', true ) );
+		$this->assertSame( 'pending', Connection::reconcile_status( 'pending', true ) );
+	}
 }

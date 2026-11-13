@@ -37,6 +37,13 @@ final class ApiClientTest extends TestCase {
 		$this->assertFalse( $parsed['ok'] );
 		$this->assertSame( 'spacefast_http_error', $parsed['code'] );
 		$this->assertSame( 502, $parsed['status'] );
+		$this->assertSame( '', $parsed['message'], 'The caller supplies translated text when there is no server detail.' );
+	}
+
+	public function test_unreadable_success_has_no_untranslated_message() {
+		$parsed = Api_Client::parse_response( 200, 'not json' );
+		$this->assertSame( 'spacefast_bad_response', $parsed['code'] );
+		$this->assertSame( '', $parsed['message'] );
 	}
 
 	public function test_non_json_success_is_an_error() {
