@@ -378,9 +378,9 @@ html.spacefast-modal-open {
 
 // Once the view script has measured the header and footer (it marks them with
 // `data-spacefast-region` and adds `spacefast-takeover-ready` to <html>), the
-// header sits at the top, the Space fills the rest of the screen, and the
-// footer follows below the Space at its natural height; the page scrolls to
-// reach it. With the footer hidden there is nothing to scroll to.
+// page stacks like a template: the header, then the Space at one full screen
+// tall, then the footer at its natural height. The page scrolls through them.
+// With both hidden the Space is the whole page and nothing scrolls.
 
 // Before the script runs, or without JavaScript, the footer's height isn't
 // known, so the page doesn't scroll: the header is pinned to the top, the
@@ -503,8 +503,10 @@ html:has(body.has-spacefast-fullpage .wp-block-spacefast-space.is-fullpage-takeo
 	}
 }
 
-// The measured layout. The Space is the full height of the screen under the
-// header, and the footer sits below the fold.
+// The measured layout stacks like a template: header, then the Space, then
+// the footer. The Space is one full screen tall, so scrolling moves the header
+// off the top, leaves the Space filling the screen, and then brings the footer
+// up after it.
 $spacefast-ready: "html.spacefast-takeover-ready #{$spacefast-takeover}";
 $spacefast-screen: "(100vh - var(--spacefast-admin-bar, 0px))";
 $spacefast-screen-dynamic: "(100dvh - var(--spacefast-admin-bar, 0px))";
@@ -515,8 +517,8 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 
 #{$spacefast-ready} {
 	position: relative;
-	height: calc(#{$spacefast-screen} + var(--spacefast-footer, 0px));
-	height: calc(#{$spacefast-screen-dynamic} + var(--spacefast-footer, 0px));
+	height: calc(var(--spacefast-header, 0px) + #{$spacefast-screen} + var(--spacefast-footer, 0px));
+	height: calc(var(--spacefast-header, 0px) + #{$spacefast-screen-dynamic} + var(--spacefast-footer, 0px));
 	margin: 0 !important;
 
 	// The header, Space, and footer are placed against the page itself, so no
@@ -538,8 +540,8 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 	}
 
 	[data-spacefast-region="footer"] {
-		top: calc(#{$spacefast-screen});
-		top: calc(#{$spacefast-screen-dynamic});
+		top: calc(var(--spacefast-header, 0px) + #{$spacefast-screen});
+		top: calc(var(--spacefast-header, 0px) + #{$spacefast-screen-dynamic});
 		bottom: auto;
 		max-height: none;
 		overflow-y: visible;
@@ -548,8 +550,8 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 	.wp-block-spacefast-space.is-fullpage-takeover {
 		position: absolute;
 		inset: var(--spacefast-header, 0px) 0 auto 0;
-		height: calc(#{$spacefast-screen} - var(--spacefast-header, 0px)) !important;
-		height: calc(#{$spacefast-screen-dynamic} - var(--spacefast-header, 0px)) !important;
+		height: calc(#{$spacefast-screen}) !important;
+		height: calc(#{$spacefast-screen-dynamic}) !important;
 	}
 }
 
