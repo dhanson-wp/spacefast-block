@@ -9,28 +9,31 @@ import Panel from './panel';
 import ToggleItem from './toggle-item';
 
 /**
- * The Click behaviour panel for cards and links: open the Space in a modal or
+ * The Click behavior panel for cards and links: open the Space in a modal or
  * go to it.
  *
  * @param {Object}                 props               Component props.
  * @param {Object}                 props.attributes    Block attributes.
  * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
  */
-export default function ClickPanel( { attributes, setAttributes } ) {
+export default function ClickPanel( { attributes, setAttributes, clientId } ) {
 	const { clickAction, isFrameable } = attributes;
 	// A Space that can't be framed can't open in a modal either.
 	const defaultAction = isFrameable ? 'modal' : 'link';
-	const itemProps = { attributes, setAttributes };
+	const itemProps = { attributes, setAttributes, clientId };
 
 	return (
 		<Panel
-			label={ __( 'Click behaviour', 'spacefast-block' ) }
+			label={ __( 'Click behavior', 'spacefast-block' ) }
+			clientId={ clientId }
 			resetKeys={ [ 'openInNewTab', 'modalExternalLink' ] }
 			setAttributes={ ( defaults ) =>
 				setAttributes( { ...defaults, clickAction: defaultAction } )
 			}
 		>
 			<ToolsPanelItem
+				panelId={ clientId }
 				label={ __( 'On click', 'spacefast-block' ) }
 				hasValue={ () => clickAction !== defaultAction }
 				onDeselect={ () =>

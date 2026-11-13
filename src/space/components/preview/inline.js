@@ -4,7 +4,7 @@ import { ResizableBox } from '@wordpress/components';
 
 import Branding from '../branding';
 import Frame from './frame';
-import { getCardTitle } from '../../utils/display';
+import { getCardTitle, hasAspectRatio } from '../../utils/display';
 
 // Only the bottom edge resizes, as on the Cover block.
 const RESIZE_EDGES = {
@@ -40,7 +40,6 @@ export default function InlinePreview( {
 	// The block's height when the drag started. The handle sits inside the
 	// block, so the new height is that plus how far the handle moved.
 	const startHeight = useRef( 0 );
-	const hasAspectRatio = !! attributes.style?.dimensions?.aspectRatio;
 
 	const heightAfter = ( delta ) =>
 		Math.max(
@@ -73,7 +72,7 @@ export default function InlinePreview( {
 				minHeight={ MIN_RESIZE_HEIGHT }
 				enable={ RESIZE_EDGES }
 				// An aspect ratio wins over a height, so there is nothing to drag.
-				showHandle={ isSelected && ! hasAspectRatio }
+				showHandle={ isSelected && ! hasAspectRatio( attributes ) }
 				onResizeStart={ ( _event, _direction, element ) => {
 					startHeight.current =
 						element.parentElement.getBoundingClientRect().height;

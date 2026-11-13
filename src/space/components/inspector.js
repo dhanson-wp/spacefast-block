@@ -46,7 +46,7 @@ export default function SpaceInspector( {
 	isRefreshing,
 } ) {
 	const display = getEffectiveDisplay( attributes );
-	const itemProps = { attributes, setAttributes };
+	const itemProps = { attributes, setAttributes, clientId };
 
 	return (
 		<>
@@ -57,6 +57,7 @@ export default function SpaceInspector( {
 						label={ __( 'Inline', 'spacefast-block' ) }
 						resetKeys={ [ 'showTitleBar' ] }
 						setAttributes={ setAttributes }
+						clientId={ clientId }
 					>
 						<ToggleItem
 							attribute="showTitleBar"
@@ -70,6 +71,7 @@ export default function SpaceInspector( {
 						label={ __( 'Full page', 'spacefast-block' ) }
 						resetKeys={ [ 'hideHeader', 'hideFooter' ] }
 						setAttributes={ setAttributes }
+						clientId={ clientId }
 					>
 						<ToggleItem
 							attribute="hideHeader"
@@ -102,6 +104,7 @@ export default function SpaceInspector( {
 							'privateCta',
 						] }
 						setAttributes={ setAttributes }
+						clientId={ clientId }
 					>
 						<ToggleItem
 							attribute="showPrivateBadge"
@@ -136,6 +139,7 @@ export default function SpaceInspector( {
 						'allowFullscreen',
 					] }
 					setAttributes={ setAttributes }
+					clientId={ clientId }
 				>
 					<TextItem
 						attribute="startPath"
@@ -180,7 +184,7 @@ export default function SpaceInspector( {
 			</InspectorControls>
 			{ display === 'inline' && (
 				<InspectorControls group="dimensions">
-					<MinHeightItem { ...itemProps } clientId={ clientId } />
+					<MinHeightItem { ...itemProps } />
 				</InspectorControls>
 			) }
 			<InspectorControls group="advanced">

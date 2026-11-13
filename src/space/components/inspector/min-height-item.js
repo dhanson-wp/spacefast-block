@@ -7,7 +7,7 @@ import {
 	__experimentalUseCustomUnits as useCustomUnits,
 } from '@wordpress/components';
 
-import { withoutAspectRatio } from '../../utils/display';
+import { hasAspectRatio, withoutAspectRatio } from '../../utils/display';
 
 const HEIGHT_UNITS = [ 'px', 'em', 'rem', 'vh', 'vw' ];
 // The smallest pixel height, matching the Cover block.
@@ -31,7 +31,6 @@ export default function MinHeightItem( {
 	const inputId = `spacefast-space-min-height-${ useInstanceId(
 		UnitControl
 	) }`;
-	const hasAspectRatio = !! style?.dimensions?.aspectRatio;
 
 	const [ themeUnits ] = useSettings( 'spacing.units' );
 	const allowedUnits = ( themeUnits || HEIGHT_UNITS ).filter( ( unit ) =>
@@ -44,7 +43,10 @@ export default function MinHeightItem( {
 
 	// Keep the unit even while the number is empty, as Cover does, so a unit
 	// picked before typing isn't lost.
-	const quantity = hasAspectRatio || minHeight === undefined ? '' : minHeight;
+	const quantity =
+		hasAspectRatio( attributes ) || minHeight === undefined
+			? ''
+			: minHeight;
 	const value = `${ quantity }${ minHeightUnit }`;
 
 	const resetAttributes = () => ( {

@@ -13,6 +13,7 @@ import {
  * @param {string}                 props.placeholder   Text shown while it is empty.
  * @param {Object}                 props.attributes    Block attributes.
  * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
  */
 export default function TextItem( {
 	attribute,
@@ -21,9 +22,11 @@ export default function TextItem( {
 	placeholder,
 	attributes,
 	setAttributes,
+	clientId,
 } ) {
 	return (
 		<ToolsPanelItem
+			panelId={ clientId }
 			label={ label }
 			hasValue={ () => !! attributes[ attribute ] }
 			onDeselect={ () => setAttributes( { [ attribute ]: '' } ) }

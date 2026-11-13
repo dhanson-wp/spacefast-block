@@ -14,6 +14,7 @@ import { getDefaults } from './defaults';
  * @param {string}                 props.help          Optional help text.
  * @param {Object}                 props.attributes    Block attributes.
  * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
  */
 export default function ToggleItem( {
 	attribute,
@@ -21,10 +22,12 @@ export default function ToggleItem( {
 	help,
 	attributes,
 	setAttributes,
+	clientId,
 } ) {
 	const defaultValue = getDefaults( [ attribute ] )[ attribute ];
 	return (
 		<ToolsPanelItem
+			panelId={ clientId }
 			label={ label }
 			hasValue={ () => attributes[ attribute ] !== defaultValue }
 			onDeselect={ () =>

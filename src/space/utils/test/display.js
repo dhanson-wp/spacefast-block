@@ -1,5 +1,7 @@
 import {
 	getBlockClassNames,
+	getDisplayNotice,
+	hasAspectRatio,
 	getCardImageUrl,
 	getCardTitle,
 	getClearedSpaceAttributes,
@@ -41,6 +43,7 @@ describe( 'getMinHeight', () => {
 		expect(
 			getMinHeight( {
 				display: 'inline',
+				isFrameable: true,
 				minHeight: 420,
 				minHeightUnit: 'px',
 			} )
@@ -48,14 +51,22 @@ describe( 'getMinHeight', () => {
 	} );
 
 	it( 'defaults the unit to px', () => {
-		expect( getMinHeight( { display: 'inline', minHeight: 30 } ) ).toBe(
-			'30px'
-		);
+		expect(
+			getMinHeight( {
+				display: 'inline',
+				isFrameable: true,
+				minHeight: 30,
+			} )
+		).toBe( '30px' );
 	} );
 
 	it( 'is undefined when no height is set', () => {
 		expect(
-			getMinHeight( { display: 'inline', minHeightUnit: 'vh' } )
+			getMinHeight( {
+				display: 'inline',
+				isFrameable: true,
+				minHeightUnit: 'vh',
+			} )
 		).toBeUndefined();
 	} );
 
@@ -63,15 +74,32 @@ describe( 'getMinHeight', () => {
 		'is undefined for %s',
 		( display ) => {
 			expect(
-				getMinHeight( { display, minHeight: 50, minHeightUnit: 'vh' } )
+				getMinHeight( {
+					display,
+					isFrameable: true,
+					minHeight: 50,
+					minHeightUnit: 'vh',
+				} )
 			).toBeUndefined();
 		}
 	);
+
+	it( 'is undefined for an inline Space that can no longer be framed', () => {
+		expect(
+			getMinHeight( {
+				display: 'inline',
+				isFrameable: false,
+				minHeight: 50,
+				minHeightUnit: 'vh',
+			} )
+		).toBeUndefined();
+	} );
 
 	it( 'gives way to an explicit aspect ratio', () => {
 		expect(
 			getMinHeight( {
 				display: 'inline',
+				isFrameable: true,
 				minHeight: 50,
 				minHeightUnit: 'vh',
 				style: { dimensions: { aspectRatio: '16/9' } },
@@ -83,6 +111,7 @@ describe( 'getMinHeight', () => {
 		expect(
 			getMinHeight( {
 				display: 'inline',
+				isFrameable: true,
 				minHeight: 50,
 				minHeightUnit: 'vh',
 				style: { dimensions: { aspectRatio: 'auto' } },
@@ -349,5 +378,49 @@ describe( 'getBlockClassNames', () => {
 				isPrivate: true,
 			} )
 		).toBe( 'is-display-card is-private' );
+	} );
+} );
+
+describe( 'hasAspectRatio', () => {
+	it( 'is true for an explicit ratio', () => {
+		expect(
+			hasAspectRatio( { style: { dimensions: { aspectRatio: '16/9' } } } )
+		).toBe( true );
+	} );
+
+	it.each( [
+		[ 'auto', { style: { dimensions: { aspectRatio: 'auto' } } } ],
+		[
+			'Auto with spaces',
+			{ style: { dimensions: { aspectRatio: ' Auto ' } } },
+		],
+		[ 'no style', {} ],
+		[ 'empty', { style: { dimensions: { aspectRatio: '' } } } ],
+	] )( 'is false for %s', ( _name, attributes ) => {
+		expect( hasAspectRatio( attributes ) ).toBe( false );
+	} );
+} );
+
+describe( 'getDisplayNotice', () => {
+	it( 'says nothing for a Space that can be framed', () => {
+		expect(
+			getDisplayNotice( { isFrameable: true, isPrivate: false } )
+		).toBe( '' );
+	} );
+
+	it( 'explains a private Space', () => {
+		expect(
+			getDisplayNotice( { isFrameable: false, isPrivate: true } )
+		).toBe(
+			'This Space is private, so it can only be shown as a card or link.'
+		);
+	} );
+
+	it( 'explains a public Space that refuses framing', () => {
+		expect(
+			getDisplayNotice( { isFrameable: false, isPrivate: false } )
+		).toBe(
+			"This Space can't be shown inside a page, so it can only be shown as a card or link."
+		);
 	} );
 } );

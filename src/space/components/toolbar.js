@@ -9,6 +9,7 @@ import { external } from '@wordpress/icons';
 
 import {
 	getClearedSpaceAttributes,
+	getEffectiveDisplay,
 	getFullHeightToggleAttributes,
 	isFullHeight,
 } from '../utils/display';
@@ -29,7 +30,7 @@ export default function SpaceToolbar( {
 	onRefresh,
 	isRefreshing,
 } ) {
-	const { display, minHeight, minHeightUnit, url } = attributes;
+	const { minHeight, minHeightUnit, url } = attributes;
 
 	// The height to go back to when full height is turned off, as Cover keeps it.
 	const [ previousHeight, setPreviousHeight ] = useState( {
@@ -48,7 +49,7 @@ export default function SpaceToolbar( {
 
 	return (
 		<>
-			{ display === 'inline' && attributes.isFrameable && (
+			{ getEffectiveDisplay( attributes ) === 'inline' && (
 				<BlockControls group="block">
 					<FullHeightAlignmentControl
 						isActive={ isFullHeight( attributes ) }

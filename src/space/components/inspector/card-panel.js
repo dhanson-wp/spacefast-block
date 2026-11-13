@@ -24,20 +24,23 @@ const CARD_KEYS = [
  * @param {Object}                 props               Component props.
  * @param {Object}                 props.attributes    Block attributes.
  * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
  * @param {() => void}             props.onResetImage  Puts the Space's own image back.
  * @param {boolean}                props.isRefreshing  Whether the Space's details are being fetched.
  */
 export default function CardPanel( {
 	attributes,
 	setAttributes,
+	clientId,
 	onResetImage,
 	isRefreshing,
 } ) {
 	const dropdownMenuProps = useToolsPanelDropdownMenuProps();
-	const itemProps = { attributes, setAttributes };
+	const itemProps = { attributes, setAttributes, clientId };
 
 	return (
 		<ToolsPanel
+			panelId={ clientId }
 			label={ __( 'Card', 'spacefast-block' ) }
 			resetAll={ () => {
 				setAttributes( getDefaults( CARD_KEYS ) );
@@ -54,6 +57,7 @@ export default function CardPanel( {
 			/>
 			{ attributes.showImage && (
 				<ToolsPanelItem
+					panelId={ clientId }
 					label={ __( 'Image position', 'spacefast-block' ) }
 					hasValue={ () => attributes.imagePosition !== 'top' }
 					onDeselect={ () =>

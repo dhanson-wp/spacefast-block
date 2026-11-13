@@ -8,7 +8,11 @@ import {
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
 
-import { getEffectiveDisplay, isDisplayAvailable } from '../../utils/display';
+import {
+	getDisplayNotice,
+	getEffectiveDisplay,
+	isDisplayAvailable,
+} from '../../utils/display';
 import useToolsPanelDropdownMenuProps from '../../utils/use-tools-panel-dropdown-menu-props';
 
 /**
@@ -17,14 +21,20 @@ import useToolsPanelDropdownMenuProps from '../../utils/use-tools-panel-dropdown
  * @param {Object}                 props               Component props.
  * @param {Object}                 props.attributes    Block attributes.
  * @param {(next: Object) => void} props.setAttributes Updates block attributes.
+ * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
  */
-export default function DisplayPanel( { attributes, setAttributes } ) {
+export default function DisplayPanel( {
+	attributes,
+	setAttributes,
+	clientId,
+} ) {
 	const dropdownMenuProps = useToolsPanelDropdownMenuProps();
 	const { isFrameable } = attributes;
 	const display = getEffectiveDisplay( attributes );
 	// A Space that can't be framed falls back to a card, so that is its default.
 	const defaultDisplay = isFrameable ? 'inline' : 'card';
 	const reset = () => setAttributes( { display: defaultDisplay } );
+	const notice = getDisplayNotice( attributes );
 
 	const options = [
 		{ value: 'inline', label: __( 'Inline', 'spacefast-block' ) },
@@ -35,11 +45,13 @@ export default function DisplayPanel( { attributes, setAttributes } ) {
 
 	return (
 		<ToolsPanel
+			panelId={ clientId }
 			label={ __( 'Display', 'spacefast-block' ) }
 			resetAll={ reset }
 			dropdownMenuProps={ dropdownMenuProps }
 		>
 			<ToolsPanelItem
+				panelId={ clientId }
 				label={ __( 'Display', 'spacefast-block' ) }
 				hasValue={ () => display !== defaultDisplay }
 				onDeselect={ reset }
@@ -70,12 +82,9 @@ export default function DisplayPanel( { attributes, setAttributes } ) {
 							/>
 						) ) }
 					</ToggleGroupControl>
-					{ ! isFrameable && (
+					{ notice && (
 						<Notice status="info" isDismissible={ false }>
-							{ __(
-								'This Space is private, so it can only be shown as a card or link.',
-								'spacefast-block'
-							) }
+							{ notice }
 						</Notice>
 					) }
 				</Flex>

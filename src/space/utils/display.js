@@ -31,12 +31,35 @@ export function getEffectiveDisplay( { display, isFrameable } ) {
 }
 
 /**
+ * The note shown when a Space can only be a card or a link, or '' when every
+ * mode is available.
+ *
+ * @param {Object} attributes Block attributes.
+ * @return {string} Notice text.
+ */
+export function getDisplayNotice( attributes ) {
+	if ( attributes.isFrameable ) {
+		return '';
+	}
+	return attributes.isPrivate
+		? __(
+				'This Space is private, so it can only be shown as a card or link.',
+				'spacefast-block'
+			)
+		: __(
+				"This Space can't be shown inside a page, so it can only be shown as a card or link.",
+				'spacefast-block'
+			);
+}
+
+/**
  * Whether the block has an explicit aspect ratio, which wins over any height.
+ * An `auto` ratio is no ratio, as the block editor's dimensions support has it.
  *
  * @param {Object} attributes Block attributes.
  * @return {boolean} True if an aspect ratio other than auto is set.
  */
-function hasAspectRatio( attributes ) {
+export function hasAspectRatio( attributes ) {
 	const aspectRatio = attributes.style?.dimensions?.aspectRatio;
 	return !! aspectRatio && `${ aspectRatio }`.trim().toLowerCase() !== 'auto';
 }
@@ -49,8 +72,12 @@ function hasAspectRatio( attributes ) {
  * @return {string|undefined} CSS length, or undefined for none.
  */
 export function getMinHeight( attributes ) {
-	const { display, minHeight, minHeightUnit } = attributes;
-	if ( display !== 'inline' || ! minHeight || hasAspectRatio( attributes ) ) {
+	const { minHeight, minHeightUnit } = attributes;
+	if (
+		getEffectiveDisplay( attributes ) !== 'inline' ||
+		! minHeight ||
+		hasAspectRatio( attributes )
+	) {
 		return undefined;
 	}
 	return `${ minHeight }${ minHeightUnit || 'px' }`;

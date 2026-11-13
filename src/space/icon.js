@@ -1,7 +1,7 @@
 import { SVG, Rect, Path } from '@wordpress/primitives';
 
 /**
- * Official Spacefast icon, kept in its original colours.
+ * Official Spacefast icon, kept in its original colors.
  */
 const icon = (
 	<SVG
