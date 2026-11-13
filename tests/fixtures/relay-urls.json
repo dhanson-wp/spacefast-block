@@ -1,68 +1,101 @@
 {
-	"_comment": "Shared by tests/php/SpaceRelayTest.php and src/space/utils/test/relay.js, so the PHP and JS relay URL builders agree.",
+	"_comment": "Shared by tests/php/SpaceRelayTest.php and src/space/utils/test/relay.js, so the PHP and JS relay URL builders agree. The signature is an input: only the server can compute it.",
 	"pageRelayUrl": [
 		{
 			"name": "home page",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://a.space.fast",
 			"startPath": "",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/"
 		},
 		{
 			"name": "nested path",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://a.space.fast/",
 			"startPath": "/docs/intro/",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/docs/intro/"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/docs/intro/"
 		},
 		{
-			"name": "file path with query",
+			"name": "file path",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://a.space.fast/",
-			"startPath": "/docs/a.html?x=1&y=2",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/docs/a.html?x=1&y=2"
+			"startPath": "/docs/a.html",
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/docs/a.html"
+		},
+		{
+			"name": "query means no relay",
+			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
+			"url": "https://a.space.fast/",
+			"startPath": "/docs/a.html?x=1",
+			"signature": "0123456789abcdef",
+			"expected": ""
 		},
 		{
 			"name": "fragment dropped",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://a.space.fast/",
 			"startPath": "/docs/#part",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/docs/"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/docs/"
 		},
 		{
 			"name": "plus kept through one decode",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://a.space.fast/",
 			"startPath": "a+b/",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/a%2Bb/"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/a%2Bb/"
 		},
 		{
 			"name": "host lowercased",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://A.Space.Fast/",
 			"startPath": "",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/"
 		},
 		{
 			"name": "unsafe path falls back to home",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "https://a.space.fast/",
 			"startPath": "../etc/",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast/"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/page/a.space.fast~0123456789abcdef/"
 		},
 		{
 			"name": "invalid Space URL",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"url": "http://a.space.fast/",
 			"startPath": "",
+			"signature": "0123456789abcdef",
+			"expected": ""
+		},
+		{
+			"name": "missing signature",
+			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
+			"url": "https://a.space.fast/",
+			"startPath": "",
+			"signature": "",
+			"expected": ""
+		},
+		{
+			"name": "malformed signature",
+			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
+			"url": "https://a.space.fast/",
+			"startPath": "",
+			"signature": "abc/def",
 			"expected": ""
 		},
 		{
 			"name": "plain permalinks",
 			"relayBase": "http://example.test/?rest_route=/spacefast-block/v1/",
 			"url": "https://a.space.fast/",
-			"startPath": "/a&b/c.html?x=1",
-			"expected": "http://example.test/?rest_route=/spacefast-block/v1/page/a.space.fast/a%26b/c.html&x=1"
+			"startPath": "/a&b/c.html",
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/?rest_route=/spacefast-block/v1/page/a.space.fast~0123456789abcdef/a%26b/c.html"
 		}
 	],
 	"relayUrl": [
@@ -71,20 +104,31 @@
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "https://a.space.fast/fonts/x.woff2",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/asset/a.space.fast/fonts/x.woff2"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/asset/a.space.fast~0123456789abcdef/fonts/x.woff2"
 		},
 		{
-			"name": "asset with query and fragment",
+			"name": "asset query and fragment dropped",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "https://a.space.fast/f.eot?v=2#iefix",
-			"expected": "http://example.test/wp-json/spacefast-block/v1/asset/a.space.fast/f.eot?v=2"
+			"signature": "0123456789abcdef",
+			"expected": "http://example.test/wp-json/spacefast-block/v1/asset/a.space.fast~0123456789abcdef/f.eot"
+		},
+		{
+			"name": "page with query",
+			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
+			"kind": "page",
+			"url": "https://a.space.fast/?x=1",
+			"signature": "0123456789abcdef",
+			"expected": ""
 		},
 		{
 			"name": "unknown kind",
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "image",
 			"url": "https://a.space.fast/x.png",
+			"signature": "0123456789abcdef",
 			"expected": ""
 		},
 		{
@@ -92,6 +136,7 @@
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "http://a.space.fast/x.css",
+			"signature": "0123456789abcdef",
 			"expected": ""
 		},
 		{
@@ -99,6 +144,7 @@
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "https://a.space.fast:8443/x.css",
+			"signature": "0123456789abcdef",
 			"expected": ""
 		},
 		{
@@ -106,6 +152,7 @@
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "https://u@a.space.fast/x.css",
+			"signature": "0123456789abcdef",
 			"expected": ""
 		},
 		{
@@ -113,6 +160,7 @@
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "https://a.space.fast/a/../b.css",
+			"signature": "0123456789abcdef",
 			"expected": ""
 		},
 		{
@@ -120,6 +168,7 @@
 			"relayBase": "http://example.test/wp-json/spacefast-block/v1/",
 			"kind": "asset",
 			"url": "https://a.space.fast/a@b.css",
+			"signature": "0123456789abcdef",
 			"expected": ""
 		}
 	]

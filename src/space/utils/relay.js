@@ -23,13 +23,13 @@ const MESSAGE_TYPES = [ 'height', 'error', 'ready', 'navigate', 'scroll' ];
 const ERROR_KINDS = [ 'resource', 'script' ];
 
 /**
- * Splits an https URL on a DNS host into host, path, and query.
+ * Splits an https URL on a DNS host into host, path, and whether it has a query.
  *
  * @param {string} url URL.
- * @return {?{host: string, path: string, query: string}} Parts, or null.
+ * @return {?{host: string, path: string, hasQuery: boolean}} Parts, or null.
  */
 function split( url ) {
-	const match = /^https:\/\/([^/?#]+)(?:\/([^?#]*))?(?:\?([^#]*))?/i.exec(
+	const match = /^https:\/\/([^/?#]+)(?:\/([^?#]*))?(\?[^#]*)?/i.exec(
 		String( url )
 	);
 	if ( ! match ) {
@@ -39,41 +39,42 @@ function split( url ) {
 	if ( ! isDnsName( host ) ) {
 		return null;
 	}
-	return { host, path: match[ 2 ] ?? '', query: match[ 3 ] ?? '' };
+	return { host, path: match[ 2 ] ?? '', hasQuery: !! match[ 3 ] };
 }
 
 /**
- * The relay URL for a Space URL. Mirrors `Space_Relay::relay_url()`.
+ * The relay URL for a Space URL. The host is signed by the server, so only
+ * Spaces the site put in a page can be relayed. The relay never carries a
+ * query: a page with one isn't relayed, and an asset's is dropped. Mirrors
+ * `Space_Relay::relay_url()`.
  *
  * @param {string} relayBase The REST namespace URL, ending in a slash.
  * @param {string} kind      `page` or `asset`.
  * @param {string} url       Absolute Space URL.
- * @return {string} Relay URL, or '' when the URL isn't a safe Space URL.
+ * @param {string} signature The host's signature, from the server.
+ * @return {string} Relay URL, or '' when it can't be relayed.
  */
-export function relayUrl( relayBase, kind, url ) {
-	if ( kind !== 'page' && kind !== 'asset' ) {
+export function relayUrl( relayBase, kind, url, signature ) {
+	if (
+		( kind !== 'page' && kind !== 'asset' ) ||
+		! /^[0-9a-f]{16}$/.test( String( signature ) )
+	) {
 		return '';
 	}
 	const parts = split( url );
-	if ( ! parts ) {
+	if ( ! parts || ( kind === 'page' && parts.hasQuery ) ) {
 		return '';
 	}
-	const target = parts.path + ( parts.query ? `?${ parts.query }` : '' );
 	const base = `https://${ parts.host }/`;
-	if ( frameUrl( base, target ) !== base + target ) {
+	if ( frameUrl( base, parts.path ) !== base + parts.path ) {
 		return '';
 	}
 
-	const plain = relayBase.includes( '?' );
 	let path = parts.path.replace( /\+/g, '%2B' );
-	if ( plain ) {
+	if ( relayBase.includes( '?' ) ) {
 		path = path.replace( /&/g, '%26' );
 	}
-	let result = `${ relayBase }${ kind }/${ parts.host }/${ path }`;
-	if ( parts.query ) {
-		result += ( plain ? '&' : '?' ) + parts.query;
-	}
-	return result;
+	return `${ relayBase }${ kind }/${ parts.host }~${ signature }/${ path }`;
 }
 
 /**
@@ -83,11 +84,12 @@ export function relayUrl( relayBase, kind, url ) {
  * @param {string} relayBase The REST namespace URL, ending in a slash.
  * @param {string} url       Space URL.
  * @param {string} startPath Start path.
- * @return {string} Relay URL, or '' when the Space URL isn't valid.
+ * @param {string} signature The host's signature, from the server.
+ * @return {string} Relay URL, or '' when the Space URL isn't valid or has a query.
  */
-export function pageRelayUrl( relayBase, url, startPath ) {
+export function pageRelayUrl( relayBase, url, startPath, signature ) {
 	const direct = frameUrl( url, startPath );
-	return direct ? relayUrl( relayBase, 'page', direct ) : '';
+	return direct ? relayUrl( relayBase, 'page', direct, signature ) : '';
 }
 
 /**
@@ -95,7 +97,7 @@ export function pageRelayUrl( relayBase, url, startPath ) {
  * MAX_HEIGHT, in whole pixels.
  *
  * @param {number} height    Reported height.
- * @param {number} minHeight One screen under the admin bar.
+ * @param {number} minHeight One screen under the header.
  * @return {number} Height in pixels.
  */
 export function clampHeight( height, minHeight ) {
@@ -179,14 +181,16 @@ export function shouldFallBack( message, { ready, hasHeight, fellBack } ) {
 
 /**
  * Where a link inside the Space goes: the direct Space URL and its relay URL,
- * or null when the path isn't a safe absolute path on the Space.
+ * or null when the path isn't a safe absolute path on the Space. A page with
+ * a query has no relay URL ('') and is loaded directly.
  *
  * @param {string} spaceUrl  The Space's URL.
  * @param {string} path      Path, query, and hash, starting with a slash.
  * @param {string} relayBase The REST namespace URL.
+ * @param {string} signature The Space host's signature, from the server.
  * @return {?{direct: string, relay: string}} The URLs, or null.
  */
-export function navigationTarget( spaceUrl, path, relayBase ) {
+export function navigationTarget( spaceUrl, path, relayBase, signature ) {
 	if ( typeof path !== 'string' || path[ 0 ] !== '/' ) {
 		return null;
 	}
@@ -199,6 +203,38 @@ export function navigationTarget( spaceUrl, path, relayBase ) {
 	) {
 		return null;
 	}
-	const relay = relayUrl( relayBase, 'page', direct );
-	return relay ? { direct, relay } : null;
+	return { direct, relay: relayUrl( relayBase, 'page', direct, signature ) };
+}
+
+/**
+ * Where to scroll the page for a `scroll` message: only while the visitor is
+ * interacting (a click in the Space), where the browser can tell, and never
+ * past the reported page.
+ *
+ * @param {number}            top            Offset from the top of the Space.
+ * @param {Object}            state          What the page knows.
+ * @param {boolean|undefined} state.isActive `navigator.userActivation.isActive`, or undefined without the API.
+ * @param {number}            state.maxTop   The last reported height.
+ * @return {?number} The offset to scroll to, or null to ignore the message.
+ */
+export function acceptScroll( top, { isActive, maxTop } ) {
+	if ( isActive === false || ! ( maxTop > 0 ) ) {
+		return null;
+	}
+	return Math.min( top, maxTop );
+}
+
+/**
+ * How much longer to wait for the first height, counting from when the frame
+ * started loading.
+ *
+ * @param {number}  now       Time now, from `performance.now()`.
+ * @param {?number} startedAt When the frame started loading, on the same clock.
+ * @return {number} Milliseconds.
+ */
+export function remainingWait( now, startedAt ) {
+	if ( typeof startedAt !== 'number' || startedAt > now ) {
+		return HEIGHT_TIMEOUT;
+	}
+	return Math.max( 0, HEIGHT_TIMEOUT - ( now - startedAt ) );
 }

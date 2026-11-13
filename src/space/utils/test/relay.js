@@ -1,23 +1,27 @@
 import cases from '../../../../tests/fixtures/relay-urls.json';
 import {
+	HEIGHT_TIMEOUT,
 	MAX_HEIGHT,
+	acceptScroll,
 	clampHeight,
 	navigationTarget,
 	pageRelayUrl,
 	readMessage,
 	relayUrl,
+	remainingWait,
 	shouldFallBack,
 } from '../relay';
 
 const BASE = 'http://example.test/wp-json/spacefast-block/v1/';
+const SIG = '0123456789abcdef';
 
 describe( 'pageRelayUrl (shared with the PHP twin)', () => {
 	it.each( cases.pageRelayUrl.map( ( c ) => [ c.name, c ] ) )(
 		'%s',
 		( name, c ) => {
-			expect( pageRelayUrl( c.relayBase, c.url, c.startPath ) ).toBe(
-				c.expected
-			);
+			expect(
+				pageRelayUrl( c.relayBase, c.url, c.startPath, c.signature )
+			).toBe( c.expected );
 		}
 	);
 } );
@@ -26,7 +30,9 @@ describe( 'relayUrl (shared with the PHP twin)', () => {
 	it.each( cases.relayUrl.map( ( c ) => [ c.name, c ] ) )(
 		'%s',
 		( name, c ) => {
-			expect( relayUrl( c.relayBase, c.kind, c.url ) ).toBe( c.expected );
+			expect( relayUrl( c.relayBase, c.kind, c.url, c.signature ) ).toBe(
+				c.expected
+			);
 		}
 	);
 } );
@@ -194,15 +200,22 @@ describe( 'navigationTarget', () => {
 	const space = 'https://a.space.fast/';
 
 	it( 'builds the direct and relay URLs for a safe path', () => {
-		expect( navigationTarget( space, '/docs/a.html?x=1#y', BASE ) ).toEqual(
-			{
-				direct: 'https://a.space.fast/docs/a.html?x=1#y',
-				relay: `${ BASE }page/a.space.fast/docs/a.html?x=1`,
-			}
-		);
-		expect( navigationTarget( space, '/', BASE ) ).toEqual( {
+		expect(
+			navigationTarget( space, '/docs/a.html#y', BASE, SIG )
+		).toEqual( {
+			direct: 'https://a.space.fast/docs/a.html#y',
+			relay: `${ BASE }page/a.space.fast~${ SIG }/docs/a.html`,
+		} );
+		expect( navigationTarget( space, '/', BASE, SIG ) ).toEqual( {
 			direct: 'https://a.space.fast/',
-			relay: `${ BASE }page/a.space.fast/`,
+			relay: `${ BASE }page/a.space.fast~${ SIG }/`,
+		} );
+	} );
+
+	it( 'loads a page with a query directly', () => {
+		expect( navigationTarget( space, '/a/?x=1', BASE, SIG ) ).toEqual( {
+			direct: 'https://a.space.fast/a/?x=1',
+			relay: '',
 		} );
 	} );
 
@@ -216,7 +229,51 @@ describe( 'navigationTarget', () => {
 			'',
 			'x',
 		].forEach( ( path ) => {
-			expect( navigationTarget( space, path, BASE ) ).toBeNull();
+			expect( navigationTarget( space, path, BASE, SIG ) ).toBeNull();
 		} );
+	} );
+} );
+
+describe( 'acceptScroll', () => {
+	it( 'accepts a scroll during a user gesture, clamped to the page', () => {
+		expect( acceptScroll( 640, { isActive: true, maxTop: 9000 } ) ).toBe(
+			640
+		);
+		expect( acceptScroll( 20000, { isActive: true, maxTop: 9000 } ) ).toBe(
+			9000
+		);
+	} );
+
+	it( 'refuses a scroll without a user gesture', () => {
+		expect( acceptScroll( 640, { isActive: false, maxTop: 9000 } ) ).toBe(
+			null
+		);
+	} );
+
+	it( 'accepts a scroll where the browser has no activation API', () => {
+		expect(
+			acceptScroll( 640, { isActive: undefined, maxTop: 9000 } )
+		).toBe( 640 );
+	} );
+
+	it( 'refuses a scroll before any height is known', () => {
+		expect( acceptScroll( 640, { isActive: true, maxTop: 0 } ) ).toBe(
+			null
+		);
+	} );
+} );
+
+describe( 'remainingWait', () => {
+	it( 'counts from when the frame started loading', () => {
+		expect( remainingWait( 2500, 500 ) ).toBe( HEIGHT_TIMEOUT - 2000 );
+	} );
+
+	it( 'never goes below zero', () => {
+		expect( remainingWait( 9000, 500 ) ).toBe( 0 );
+	} );
+
+	it( 'waits the full time when the start is unknown', () => {
+		expect( remainingWait( 2500, undefined ) ).toBe( HEIGHT_TIMEOUT );
+		expect( remainingWait( 2500, 4000 ) ).toBe( HEIGHT_TIMEOUT );
 	} );
 } );

@@ -33,14 +33,17 @@ class Relay_Page {
 	 * A `<meta http-equiv="Content-Security-Policy">` is left alone: it only
 	 * applies to what follows it, and the reporter comes first.
 	 *
+	 * Only URLs on the page's own host are relayed, whatever its `<base>` says.
+	 *
 	 * @param string $html       The page as fetched.
 	 * @param string $page_url   The page's real URL.
 	 * @param string $relay_base The REST namespace URL.
+	 * @param string $signature  The page host's signature.
 	 * @param string $reporter   The reporter script.
 	 * @return array{html: string, charset: string} Rewritten page, and the
 	 *         `<meta charset>` value ('' for none).
 	 */
-	public static function rewrite( string $html, string $page_url, string $relay_base, string $reporter ): array {
+	public static function rewrite( string $html, string $page_url, string $relay_base, string $signature, string $reporter ): array {
 		$scan     = self::scan( $html );
 		$base     = Space_Relay::base_href( $page_url, $scan['base'] );
 		$marker   = 'data-spacefast-relay-' . substr( md5( $html ), 0, 12 );
@@ -60,18 +63,18 @@ class Relay_Page {
 			} elseif ( 'BASE' === $tag ) {
 				$processor->remove_attribute( 'href' );
 			} elseif ( 'LINK' === $tag ) {
-				self::rewrite_link( $processor, $base, $relay_base );
+				self::rewrite_link( $processor, $base, $page_url, $relay_base, $signature );
 			} elseif ( 'SCRIPT' === $tag ) {
 				$src = $processor->get_attribute( 'src' );
 				if ( is_string( $src ) && Space_Relay::is_relayed_script( (string) $processor->get_attribute( 'type' ) ) ) {
-					$relayed = Space_Relay::html_asset_url( $base, $src, $relay_base );
+					$relayed = Space_Relay::html_asset_url( $base, $page_url, $src, $relay_base, $signature );
 					if ( null !== $relayed ) {
 						$processor->set_attribute( 'src', $relayed );
 					}
 				}
 			} elseif ( 'STYLE' === $tag ) {
 				$css       = $processor->get_modifiable_text();
-				$rewritten = Space_Relay::rewrite_css( $css, $base, $relay_base );
+				$rewritten = Space_Relay::rewrite_css( $css, $base, $relay_base, $signature, $page_url );
 				if ( $rewritten !== $css ) {
 					$processor->set_modifiable_text( $rewritten );
 				}
@@ -123,16 +126,18 @@ class Relay_Page {
 	 *
 	 * @param WP_HTML_Tag_Processor $processor  Processor on the link.
 	 * @param string                $base       The URL the document resolves against.
+	 * @param string                $page_url   The page's real URL.
 	 * @param string                $relay_base The REST namespace URL.
+	 * @param string                $signature  The page host's signature.
 	 */
-	private static function rewrite_link( WP_HTML_Tag_Processor $processor, string $base, string $relay_base ): void {
+	private static function rewrite_link( WP_HTML_Tag_Processor $processor, string $base, string $page_url, string $relay_base, string $signature ): void {
 		$href = $processor->get_attribute( 'href' );
 		$rel  = (string) $processor->get_attribute( 'rel' );
 		$as   = (string) $processor->get_attribute( 'as' );
 		if ( ! is_string( $href ) || ! Space_Relay::is_relayed_link( $rel, $as ) ) {
 			return;
 		}
-		$relayed = Space_Relay::html_asset_url( $base, $href, $relay_base );
+		$relayed = Space_Relay::html_asset_url( $base, $page_url, $href, $relay_base, $signature );
 		if ( null === $relayed ) {
 			return;
 		}

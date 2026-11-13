@@ -295,8 +295,10 @@ function spacefast_block_link_html( array $attributes, string $href, bool $has_m
  * - `src`     (bool)        Print the `src` attribute. Default true; the modal passes false and sets it when it opens.
  * - `loading` (string|null) `lazy`, `eager`, or '' for no attribute. Default null: lazy when the block asks for it.
  * - `relay`   (string)      The relay URL to load instead of the Space. The frame then
- *                           doesn't scroll, has no fullscreen, and its sandbox never
- *                           includes `allow-same-origin`, since the relay is on this site.
+ *                           has no fullscreen, and its sandbox never includes
+ *                           `allow-same-origin`, since the relay is on this site. It
+ *                           still scrolls inside until the view script sizes it, so
+ *                           without JavaScript the whole Space can be reached.
  *
  * @param array $attributes Block attributes.
  * @param array $args       Options, described above.
@@ -331,7 +333,7 @@ function spacefast_block_frame_html( array $attributes, array $args = array() ):
 		$html .= ' loading="' . esc_attr( $loading ) . '"';
 	}
 	if ( '' !== $relay ) {
-		$html .= ' scrolling="no" referrerpolicy="strict-origin-when-cross-origin"'
+		$html .= ' referrerpolicy="strict-origin-when-cross-origin"'
 			. ' sandbox="' . esc_attr( Space_Relay::SANDBOX ) . '"></iframe>';
 		return $html;
 	}
@@ -471,10 +473,17 @@ function spacefast_block_render( array $attributes ): string {
 	$is_takeover = 'fullpage' === $display && Takeover::claim();
 	$has_modal   = spacefast_block_has_modal( $attributes, $host_may_be_framed );
 	// A takeover shows the Space at its full length through the relay unless
-	// the block turns that off.
-	$relay = $is_takeover && ( $attributes['fitContent'] ?? true )
-		? Space_Relay::relay_url( Relay_Controller::relay_base(), 'page', $href )
-		: '';
+	// the block turns that off. The relay URL carries this host's signature, so
+	// the relay serves only Spaces the site shows. A start path with a query
+	// isn't relayed (relay_url() returns ''), so it frames the Space directly.
+	// A takeover's host may always be framed, which is the only time a signed
+	// URL is printed.
+	$signature = '';
+	$relay     = '';
+	if ( $is_takeover && ( $attributes['fitContent'] ?? true ) && $host_may_be_framed ) {
+		$signature = Relay_Controller::signature( Space_Url::hostname( $href ) );
+		$relay     = Space_Relay::relay_url( Relay_Controller::relay_base(), 'page', $href, $signature );
+	}
 	$inner = '';
 	if ( $is_takeover ) {
 		$inner = spacefast_block_takeover_html( $attributes, $href, $relay );
@@ -531,6 +540,7 @@ function spacefast_block_render( array $attributes ): string {
 						'spaceUrl'        => (string) Space_Url::normalize( $href ),
 						'directUrl'       => $href,
 						'relayBase'       => Relay_Controller::relay_base(),
+						'signature'       => $signature,
 						'sandbox'         => SPACEFAST_BLOCK_FRAME_SANDBOX,
 						'allowFullscreen' => (bool) ( $attributes['allowFullscreen'] ?? true ),
 					),
