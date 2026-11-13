@@ -17,7 +17,7 @@ Spacefast Block adds one block, "Spacefast", that puts a Space from [Spacefast](
 **Four ways to show a Space**
 
 * **Inline** shows the Space in a frame in the flow of the page. Set a minimum height or an aspect ratio, and turn on a title bar if you want one.
-* **Full page** lets the Space take over the page. You can keep or hide the site header and footer.
+* **Full page** lets the Space take over the page. You can keep or hide the site header and footer. With "Show the whole Space" on, the page scrolls through the Space at its full length, from your header to your footer, like any other page.
 * **Card** shows the Space's title, description, and preview image as a card. Choose the image position and which parts to show.
 * **Link** shows a button-style link to the Space.
 
@@ -63,6 +63,10 @@ The block remembers whether a Space could be framed when you chose it, so an inl
 
 The Space runs inside a frame, and keystrokes inside a frame belong to the Space. While focus is inside it, Escape goes to the Space, not to your page. Click outside the Space, on the dark area around the modal, or use the close button. Press Escape once focus is back on the modal's own header.
 
+= Why does my Space look different or broken in full page mode? =
+
+With "Show the whole Space" on, your site serves the Space's page to a sandboxed frame so it can measure how tall the page is. Most Spaces look the same this way. Some app-like Spaces, such as ones that sign people in or save data, don't work like this. When a Space fails to load this way, the block notices and shows the Space directly in a frame that fills one screen. If your Space still looks wrong, select the block and turn off "Show the whole Space" in the Full page settings. The Space then fills one screen and scrolls inside, as it's served by Spacefast.
+
 = Can I use a Space on a custom domain? =
 
 Yes. The block accepts any address that answers as a Spacefast Space, including custom domains. The site only frames a custom domain after the editor has confirmed it's a Space, which happens when you paste the address or choose "Refresh details". Until then, the block shows it as a card or a link.
@@ -83,7 +87,8 @@ Used only in the editor, by signed-in users who can edit posts. It's contacted w
 **The Space's own address (Spacefast-hosted domains and custom domains)**
 
 * When an author pastes or refreshes a Space address in the editor, your server requests that address to read the Space's title, description, and preview image. Results are cached for ten minutes. The request identifies itself with a `spacefast-block/<version>` user agent and sends no site or user details.
-* When a page with an inline or full page block, or an open modal, is viewed, the visitor's browser loads the Space in a frame from the Space's own domain. The visitor's browser makes that request to Spacefast or to the Space's custom domain, as it would for any frame.
+* When a page with an inline block, an open modal, or a full page block with "Show the whole Space" off is viewed, the visitor's browser loads the Space in a frame from the Space's own domain. The visitor's browser makes that request to Spacefast or to the Space's custom domain, as it would for any frame.
+* When a full page block has "Show the whole Space" on (the default), your server fetches the Space's page, stylesheets, fonts, and module scripts on the visitor's behalf and serves them from your site inside a sandboxed frame, so the page can report its height. These requests identify themselves with a `spacefast-block/<version>` user agent and send no cookies and nothing about the visitor or your site. Pages are cached for five minutes. The visitor's browser still loads the Space's images and ordinary scripts directly from the Space's own domain. Some app-like Spaces don't work this way; the block then falls back to framing the Space directly, as above.
 
 Terms and privacy policy: see the links above, and https://spacefast.com/.
 
