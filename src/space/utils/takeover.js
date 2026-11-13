@@ -31,7 +31,7 @@ export const FOOTER_SELECTORS = [
  * The largest share of the viewport the footer may take. A taller footer
  * scrolls inside that space, so the Space keeps most of the screen.
  */
-export const FOOTER_MAX_SHARE = 0.4;
+export const FOOTER_MAX_SHARE = 0.3;
 
 /**
  * The first visible element, taking the candidate lists in order.

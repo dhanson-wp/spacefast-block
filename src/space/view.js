@@ -22,6 +22,13 @@ const withSyncEvent =
 	interactivity[ SYNC_EVENT_EXPORT ] ?? ( ( handler ) => handler );
 
 const SCROLL_LOCK_CLASS = 'spacefast-modal-open';
+const TAKEOVER_SELECTOR = '.wp-block-spacefast-space.is-fullpage-takeover';
+const TAKEOVER_BODY_CLASSES = [
+	'has-spacefast-fullpage',
+	'spacefast-hide-header',
+	'spacefast-hide-footer',
+];
+const REGION_ATTRIBUTE = 'data-spacefast-region';
 const WRAPPER_SELECTOR = '.wp-block-spacefast-space';
 const DIALOG_SELECTOR = 'dialog.wp-block-spacefast-space__modal';
 
@@ -42,6 +49,17 @@ function getDialog( element ) {
 	return element
 		?.closest( WRAPPER_SELECTOR )
 		?.querySelector( DIALOG_SELECTOR );
+}
+
+// The server adds the takeover body classes when the post has a full-page
+// block. If that block didn't render (filtered out, or a theme that shows the
+// post some other way), the styles already leave the page alone; drop the
+// classes too so nothing else keys off them.
+if (
+	document.body?.classList.contains( TAKEOVER_BODY_CLASSES[ 0 ] ) &&
+	! document.querySelector( TAKEOVER_SELECTOR )
+) {
+	document.body.classList.remove( ...TAKEOVER_BODY_CLASSES );
 }
 
 store( 'spacefast/space', {
@@ -178,6 +196,10 @@ function startTakeover( doc, win ) {
 	const footer = hideFooter ? null : findRegion( doc, FOOTER_SELECTORS );
 	const adminBar = doc.getElementById( 'wpadminbar' );
 
+	// Pin exactly the header and footer that are measured.
+	header?.setAttribute( REGION_ATTRIBUTE, 'header' );
+	footer?.setAttribute( REGION_ATTRIBUTE, 'footer' );
+
 	const height = ( element ) =>
 		element && isLaidOut( element )
 			? element.getBoundingClientRect().height
@@ -218,6 +240,8 @@ function startTakeover( doc, win ) {
 	return () => {
 		win.removeEventListener( 'resize', schedule );
 		observer?.disconnect();
+		header?.removeAttribute( REGION_ATTRIBUTE );
+		footer?.removeAttribute( REGION_ATTRIBUTE );
 		if ( frame ) {
 			win.cancelAnimationFrame( frame );
 		}

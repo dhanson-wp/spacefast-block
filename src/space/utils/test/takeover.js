@@ -63,13 +63,14 @@ describe( 'pickFirstVisible', () => {
 } );
 
 describe( 'footerRegionHeight', () => {
-	it( 'keeps a footer up to 40% of the viewport', () => {
+	it( 'keeps a footer up to 30% of the viewport', () => {
 		expect( footerRegionHeight( 120, 800 ) ).toBe( 120 );
-		expect( footerRegionHeight( 320, 800 ) ).toBe( 320 );
+		expect( footerRegionHeight( 240, 800 ) ).toBe( 240 );
 	} );
 
-	it( 'caps a taller footer at 40% of the viewport', () => {
-		expect( footerRegionHeight( 900, 800 ) ).toBe( 320 );
+	it( 'caps a taller footer at 30% of the viewport', () => {
+		expect( footerRegionHeight( 320, 800 ) ).toBe( 240 );
+		expect( footerRegionHeight( 900, 800 ) ).toBe( 240 );
 	} );
 
 	it( 'is 0 for no footer', () => {
@@ -124,7 +125,7 @@ describe( 'computeOffsets', () => {
 				footerHeight: 700,
 				viewportHeight: 600,
 			} )
-		).toEqual( { top: 90, bottom: 240 } );
+		).toEqual( { top: 90, bottom: 180 } );
 	} );
 
 	it( 'treats a missing header or footer as 0', () => {

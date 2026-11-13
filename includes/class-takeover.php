@@ -41,7 +41,8 @@ class Takeover {
 	/**
 	 * The first Spacefast block in a parsed block tree that is shown full page,
 	 * searching inner blocks depth first, in document order. A Space that can't
-	 * be framed is shown as a card, so it never takes over.
+	 * be framed is shown as a card, and one without a usable URL renders
+	 * nothing, so neither takes over.
 	 *
 	 * Synced patterns (`core/block`) are not expanded; a full-page block inside
 	 * one doesn't take over.
@@ -58,6 +59,7 @@ class Takeover {
 			if (
 				'spacefast/space' === ( $block['blockName'] ?? null )
 				&& 'fullpage' === Space_Display::effective_display( $attrs )
+				&& '' !== Space_Url::frame_url( (string) ( $attrs['url'] ?? '' ), (string) ( $attrs['startPath'] ?? '' ) )
 			) {
 				return $attrs;
 			}
@@ -69,6 +71,33 @@ class Takeover {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * The part of a post's content WordPress renders for a page of a post split
+	 * with page breaks. Mirrors WP_Query::generate_postdata(): page 0 is page 1,
+	 * and a page past the end is the last page.
+	 *
+	 * @param string $content Post content.
+	 * @param int    $page    Page number, from the `page` query var.
+	 * @return string
+	 */
+	public static function content_for_page( string $content, int $page ): string {
+		if ( false === strpos( $content, '<!--nextpage-->' ) ) {
+			return $content;
+		}
+
+		$content = str_replace( "\n<!--nextpage-->\n", '<!--nextpage-->', $content );
+		$content = str_replace( "\n<!--nextpage-->", '<!--nextpage-->', $content );
+		$content = str_replace( "<!--nextpage-->\n", '<!--nextpage-->', $content );
+		$content = str_replace( array( '<!-- wp:nextpage -->', '<!-- /wp:nextpage -->' ), '', $content );
+		if ( 0 === strpos( $content, '<!--nextpage-->' ) ) {
+			$content = substr( $content, strlen( '<!--nextpage-->' ) );
+		}
+
+		$pages = explode( '<!--nextpage-->', $content );
+		$index = min( max( $page, 1 ), count( $pages ) ) - 1;
+		return $pages[ $index ];
 	}
 
 	/**
@@ -105,7 +134,9 @@ class Takeover {
 			return null;
 		}
 
-		self::$active = self::find_fullpage_block( parse_blocks( $post->post_content ) );
+		// Only the blocks on the page of the post being shown.
+		$content      = self::content_for_page( $post->post_content, (int) get_query_var( 'page' ) );
+		self::$active = self::find_fullpage_block( parse_blocks( $content ) );
 		return self::$active;
 	}
 

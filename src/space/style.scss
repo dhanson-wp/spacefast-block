@@ -364,16 +364,23 @@ html.spacefast-modal-open {
 	outline-offset: 2px;
 }
 
-// Full page. The `has-spacefast-fullpage` body class, added in PHP, switches
-// the takeover on before anything paints. The page stops scrolling and
-// everything but the header, the footer, and the Space is hidden with
-// `visibility`, which also takes it out of the accessibility tree and the tab
-// order while keeping the block's ancestors rendered. The header is pinned to
-// the top and the footer to the bottom, and the Space fills the gap between
-// them. The view script measures both and sets `--spacefast-top` and
-// `--spacefast-bottom`; until it runs the Space sits under the header and
-// footer. The region lists match HEADER_SELECTORS and FOOTER_SELECTORS in
-// utils/takeover.js. Only the outermost match of each list is a region.
+// Full page. Two things must both be true before anything is hidden: the
+// `has-spacefast-fullpage` body class, added in PHP so the layout is right
+// before anything paints, and the takeover block actually being in the page,
+// checked with :has(). If a theme or plugin stops the block from rendering, the
+// page shows normally. Browsers without :has() show the Space inline.
+
+// While it takes over, the page stops scrolling and everything but the header,
+// the footer, and the Space is hidden with `visibility`, which also takes it
+// out of the accessibility tree and the tab order while keeping the block's
+// ancestors rendered. The header is pinned to the top and the footer to the
+// bottom, and the Space fills the gap between them. The view script measures
+// both, sets `--spacefast-top` and `--spacefast-bottom`, and marks the header
+// and footer it measured with `data-spacefast-region`; only those are pinned.
+// Until it runs, the outermost match of each list below is pinned, and the
+// Space sits under the header and footer.
+
+// The lists match HEADER_SELECTORS and FOOTER_SELECTORS in utils/takeover.js.
 $spacefast-header-list: (
 	"header.wp-block-template-part",
 	".wp-site-blocks > header",
@@ -392,15 +399,38 @@ $h: $spacefast-header-list;
 $f: $spacefast-footer-list;
 $spacefast-site-header: ":is(#{$h}):not(:is(#{$h}) *)";
 $spacefast-site-footer: ":is(#{$f}):not(:is(#{$f}) *)";
+$spacefast-takeover: "body.has-spacefast-fullpage:has(.wp-block-spacefast-space.is-fullpage-takeover)";
 
 // Above page content, below the admin bar (99999).
 $spacefast-takeover-z: 99990;
 
-html:has(> body.has-spacefast-fullpage) {
+@mixin spacefast-pinned-region {
+	position: fixed;
+	right: 0;
+	left: 0;
+	z-index: $spacefast-takeover-z + 1;
+	margin-block: 0;
+	visibility: visible;
+}
+
+@mixin spacefast-pinned-header {
+	top: var(--wp-admin--admin-bar--height, 0px);
+}
+
+// A tall footer scrolls inside the bottom 30% of the screen.
+@mixin spacefast-pinned-footer {
+	bottom: 0;
+	max-height: 30vh; // Fallback for browsers without dvh.
+	max-height: 30dvh;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+html:has(> #{$spacefast-takeover}) {
 	overflow: hidden;
 }
 
-body.has-spacefast-fullpage {
+#{$spacefast-takeover} {
 	height: 100vh; // Fallback for browsers without dvh.
 	height: 100dvh;
 	overflow: hidden;
@@ -408,29 +438,6 @@ body.has-spacefast-fullpage {
 
 	#wpadminbar {
 		visibility: visible;
-	}
-
-	#{$spacefast-site-header},
-	#{$spacefast-site-footer} {
-		position: fixed;
-		right: 0;
-		left: 0;
-		z-index: $spacefast-takeover-z + 1;
-		margin-block: 0;
-		visibility: visible;
-	}
-
-	#{$spacefast-site-header} {
-		top: var(--wp-admin--admin-bar--height, 0px);
-	}
-
-	// A tall footer scrolls inside the bottom 40% of the screen.
-	#{$spacefast-site-footer} {
-		bottom: 0;
-		max-height: 40vh; // Fallback for browsers without dvh.
-		max-height: 40dvh;
-		overflow-y: auto;
-		overscroll-behavior: contain;
 	}
 
 	// The Space is the page: no spacing, border, radius, shadow, or size of
@@ -451,9 +458,45 @@ body.has-spacefast-fullpage {
 		box-shadow: none !important;
 		visibility: visible;
 	}
+
+	// The header and footer the view script measured.
+	[data-spacefast-region] {
+
+		@include spacefast-pinned-region;
+	}
+
+	[data-spacefast-region="header"] {
+
+		@include spacefast-pinned-header;
+	}
+
+	[data-spacefast-region="footer"] {
+
+		@include spacefast-pinned-footer;
+	}
 }
 
-body.spacefast-hide-header #{$spacefast-site-header},
-body.spacefast-hide-footer #{$spacefast-site-footer} {
+// Before the view script runs, or without JavaScript.
+#{$spacefast-takeover}:not(:has([data-spacefast-region])) {
+
+	#{$spacefast-site-header},
+	#{$spacefast-site-footer} {
+
+		@include spacefast-pinned-region;
+	}
+
+	#{$spacefast-site-header} {
+
+		@include spacefast-pinned-header;
+	}
+
+	#{$spacefast-site-footer} {
+
+		@include spacefast-pinned-footer;
+	}
+}
+
+#{$spacefast-takeover}.spacefast-hide-header #{$spacefast-site-header},
+#{$spacefast-takeover}.spacefast-hide-footer #{$spacefast-site-footer} {
 	display: none !important;
 }
