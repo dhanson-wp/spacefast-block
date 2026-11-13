@@ -1,4 +1,4 @@
-import { getPickerView } from '../picker-view';
+import { getPickerView, shouldOfferConnect } from '../picker-view';
 
 describe( 'getPickerView', () => {
 	it( 'shows loading until the connection state is known', () => {
@@ -47,5 +47,17 @@ describe( 'getPickerView', () => {
 				error: 'Nope.',
 			} )
 		).toBe( 'search' );
+	} );
+} );
+
+describe( 'shouldOfferConnect', () => {
+	it( 'offers to connect only once the account is known to be missing', () => {
+		expect( shouldOfferConnect( false ) ).toBe( true );
+	} );
+
+	it( 'keeps the picker wording while the state is unknown or connected', () => {
+		expect( shouldOfferConnect( null ) ).toBe( false );
+		expect( shouldOfferConnect( undefined ) ).toBe( false );
+		expect( shouldOfferConnect( true ) ).toBe( false );
 	} );
 } );

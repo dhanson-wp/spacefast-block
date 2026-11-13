@@ -20,3 +20,15 @@ export function getPickerView( { isConnected, isLoading, error } ) {
 	}
 	return error && ! isLoading ? 'error' : 'loading';
 }
+
+/**
+ * Whether the placeholder should say "Connect to Spacefast" instead of
+ * "Choose a Space". Only once the account is known to be missing, so the
+ * button doesn't change wording while the state is still loading.
+ *
+ * @param {boolean|null|undefined} isConnected Whether the account is connected.
+ * @return {boolean} True when connecting is the next step.
+ */
+export function shouldOfferConnect( isConnected ) {
+	return isConnected === false;
+}

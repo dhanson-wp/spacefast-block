@@ -21,8 +21,13 @@ import { getPickerView } from '../utils/picker-view';
  * @param {Object}                    props                Component props.
  * @param {(details: Object) => void} props.onSelect       Called with the details of the chosen Space.
  * @param {() => void}                props.onRequestClose Called to close the modal.
+ * @param {() => void}                [props.onConnected]  Called once the account is connected.
  */
-export default function SpacePickerModal( { onSelect, onRequestClose } ) {
+export default function SpacePickerModal( {
+	onSelect,
+	onRequestClose,
+	onConnected: notifyConnected,
+} ) {
 	const [ isConnected, setIsConnected ] = useState( null );
 	const [ search, setSearch ] = useState( '' );
 	const [ query, setQuery ] = useState( '' );
@@ -36,7 +41,8 @@ export default function SpacePickerModal( { onSelect, onRequestClose } ) {
 	const onConnected = useCallback( () => {
 		setIsConnected( true );
 		setReloadKey( ( key ) => key + 1 );
-	}, [] );
+		notifyConnected?.();
+	}, [ notifyConnected ] );
 
 	useEffect( () => {
 		let isActive = true;
@@ -178,7 +184,11 @@ export default function SpacePickerModal( { onSelect, onRequestClose } ) {
 
 	return (
 		<Modal
-			title={ __( 'Choose a Space', 'spacefast-block' ) }
+			title={
+				view === 'connect'
+					? __( 'Connect to Spacefast', 'spacefast-block' )
+					: __( 'Choose a Space', 'spacefast-block' )
+			}
 			onRequestClose={ onRequestClose }
 		>
 			{ content }

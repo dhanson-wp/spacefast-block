@@ -122,7 +122,7 @@ export default function Connect( { onConnected } ) {
 			<Flex direction="column" gap={ 4 }>
 				<p>
 					{ __(
-						'Approve the request in the tab that just opened, and check that it shows this code.',
+						'Spacefast opened in a new tab. Check that it shows this code, then select Authorize device. Spacefast calls this a device or terminal sign-in; this site is the device.',
 						'spacefast-block'
 					) }
 				</p>

@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { useRef, useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import {
 	Button,
 	Flex,
@@ -10,7 +10,8 @@ import {
 
 import icon from '../icon';
 import SpacePickerModal from './space-picker-modal';
-import { getErrorMessage, resolveSpace } from '../utils/api';
+import { getConnection, getErrorMessage, resolveSpace } from '../utils/api';
+import { shouldOfferConnect } from '../utils/picker-view';
 import { looksLikeUrl } from '../utils/url';
 
 /**
@@ -24,7 +25,26 @@ export default function SpacePlaceholder( { onApply } ) {
 	const [ error, setError ] = useState( '' );
 	const [ isResolving, setIsResolving ] = useState( false );
 	const [ isPickerOpen, setIsPickerOpen ] = useState( false );
+	const [ isConnected, setIsConnected ] = useState( null );
 	const latestRequest = useRef( 0 );
+
+	// Say "Connect to Spacefast" up front when there's no account yet, so the
+	// way to connect isn't hidden behind "Choose a Space".
+	useEffect( () => {
+		let isActive = true;
+		getConnection()
+			.then( ( { connected } ) => {
+				if ( isActive ) {
+					setIsConnected( !! connected );
+				}
+			} )
+			.catch( () => {} );
+		return () => {
+			isActive = false;
+		};
+	}, [] );
+
+	const offerConnect = shouldOfferConnect( isConnected );
 
 	const resolve = async ( value ) => {
 		const text = value.trim();
@@ -58,10 +78,17 @@ export default function SpacePlaceholder( { onApply } ) {
 		<Placeholder
 			icon={ icon }
 			label={ __( 'Spacefast', 'spacefast-block' ) }
-			instructions={ __(
-				'Paste a link to a Space, or choose one from your account.',
-				'spacefast-block'
-			) }
+			instructions={
+				offerConnect
+					? __(
+							'Paste a link to a Space, or connect your Spacefast account to choose one.',
+							'spacefast-block'
+						)
+					: __(
+							'Paste a link to a Space, or choose one from your account.',
+							'spacefast-block'
+						)
+			}
 		>
 			<form
 				onSubmit={ ( event ) => {
@@ -112,7 +139,12 @@ export default function SpacePlaceholder( { onApply } ) {
 							__next40pxDefaultSize
 							onClick={ () => setIsPickerOpen( true ) }
 						>
-							{ __( 'Choose a Space', 'spacefast-block' ) }
+							{ offerConnect
+								? __(
+										'Connect to Spacefast',
+										'spacefast-block'
+									)
+								: __( 'Choose a Space', 'spacefast-block' ) }
 						</Button>
 					</Flex>
 				</Flex>
@@ -120,6 +152,7 @@ export default function SpacePlaceholder( { onApply } ) {
 			{ isPickerOpen && (
 				<SpacePickerModal
 					onSelect={ onApply }
+					onConnected={ () => setIsConnected( true ) }
 					onRequestClose={ () => setIsPickerOpen( false ) }
 				/>
 			) }
