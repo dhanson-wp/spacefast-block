@@ -14,10 +14,15 @@ export default function FullPagePreview( { attributes, isSelected } ) {
 	return (
 		<>
 			<p className="wp-block-spacefast-space__editor-label">
-				{ __(
-					'Fills the screen below your header; your footer follows',
-					'spacefast-block'
-				) }
+				{ attributes.fitContent === false
+					? __(
+							'Fills the screen below your header; your footer follows',
+							'spacefast-block'
+						)
+					: __(
+							'Shown at its full length between your header and footer',
+							'spacefast-block'
+						) }
 			</p>
 			<div className="wp-block-spacefast-space__stage">
 				<Frame attributes={ attributes } isSelected={ isSelected } />
