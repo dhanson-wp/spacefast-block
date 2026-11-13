@@ -19,7 +19,11 @@ describe( 'getPickerView', () => {
 
 	it( 'shows loading again while a failed first load is retried', () => {
 		expect(
-			getPickerView( { isConnected: null, isLoading: true, error: '' } )
+			getPickerView( {
+				isConnected: null,
+				isLoading: true,
+				error: 'Nope.',
+			} )
 		).toBe( 'loading' );
 	} );
 

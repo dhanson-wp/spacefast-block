@@ -8,5 +8,7 @@
  * @var array $attributes Block attributes.
  */
 
+defined( 'ABSPATH' ) || exit;
+
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- spacefast_block_render() escapes every value it prints.
 echo spacefast_block_render( $attributes );

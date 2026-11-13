@@ -95,6 +95,7 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 :where(.wp-block-spacefast-space.is-display-card) {
 	// A size container has no width of its own, so it fills its parent; a Row
 	// or other shrink-to-fit parent would otherwise collapse it.
+	box-sizing: border-box;
 	width: 100%;
 	overflow: hidden;
 	border: 1px solid $spacefast-muted-border;
@@ -426,7 +427,7 @@ $spacefast-takeover-z: 99990;
 	overscroll-behavior: contain;
 }
 
-html:has(> #{$spacefast-takeover}) {
+html:has(body.has-spacefast-fullpage .wp-block-spacefast-space.is-fullpage-takeover) {
 	overflow: hidden;
 }
 

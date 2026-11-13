@@ -112,14 +112,14 @@ store( 'spacefast/space', {
 		 *
 		 * @param {Event} event The click event.
 		 */
-		closeOnBackdrop( event ) {
+		closeOnBackdrop: withSyncEvent( ( event ) => {
 			const { ref } = getElement();
 			const pressTarget = presses.get( ref ) ?? null;
 			presses.delete( ref );
 			if ( isBackdropDismiss( pressTarget, event.target, ref ) ) {
 				ref.close();
 			}
-		},
+		} ),
 	},
 
 	callbacks: {
