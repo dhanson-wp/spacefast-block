@@ -18,6 +18,8 @@ class Api_Client {
 
 	const MAX_RAW_BYTES = 10485760;
 
+	const MAX_REDIRECTS = 3;
+
 	/**
 	 * Sends a request to the Spacefast API.
 	 *
@@ -75,51 +77,35 @@ class Api_Client {
 	/**
 	 * Downloads a Spacefast API path as raw bytes, such as an image.
 	 *
-	 * The key is sent only to the API host. If the API answers with a redirect
-	 * (for example to an image host), the redirect target is checked against the
-	 * same host rules as every other URL and fetched without the key.
+	 * Redirects are followed by get_following_redirects(). The key goes only to
+	 * api.spacefast.com over https, on the first request and on any redirect that
+	 * stays on that host; it is never sent anywhere else. A failure from the API
+	 * itself keeps the API's error code (so a 401 can clear a dead key); a failure
+	 * from any other host gets the distinct `spacefast_image_unavailable` code.
 	 *
 	 * @param string $path Path under the API base, starting with a slash.
 	 * @param string $key  API key sent as a bearer token.
 	 * @return array{body: string, content_type: string}|WP_Error
 	 */
 	public static function request_raw( string $path, string $key ) {
-		$unreachable = new WP_Error(
-			'spacefast_unreachable',
-			__( 'Could not reach Spacefast. Try again in a moment.', 'spacefast-block' ),
-			array( 'status' => 502 )
-		);
-		$options     = array(
-			'timeout'             => 15,
-			'redirection'         => 0,
-			'limit_response_size' => self::MAX_RAW_BYTES,
-			'headers'             => array(
-				'Authorization' => 'Bearer ' . $key,
-				'User-Agent'    => 'spacefast-block/' . SPACEFAST_BLOCK_VERSION,
+		$fetched = self::get_following_redirects(
+			self::BASE_URL . $path,
+			array(
+				'timeout'             => 15,
+				'limit_response_size' => self::MAX_RAW_BYTES,
 			),
+			$key
 		);
-
-		$response = wp_remote_get( self::BASE_URL . $path, $options );
-		if ( is_wp_error( $response ) ) {
-			return $unreachable;
-		}
-		$status = (int) wp_remote_retrieve_response_code( $response );
-
-		if ( $status >= 300 && $status < 400 ) {
-			$location = (string) wp_remote_retrieve_header( $response, 'location' );
-			if ( ! Space_Lookup::is_valid_sideload_url( $location ) ) {
-				return $unreachable;
-			}
-			unset( $options['headers']['Authorization'] );
-			$options['reject_unsafe_urls'] = true;
-			$response                      = wp_safe_remote_get( $location, $options );
-			if ( is_wp_error( $response ) ) {
-				return $unreachable;
-			}
-			$status = (int) wp_remote_retrieve_response_code( $response );
+		if ( is_wp_error( $fetched ) ) {
+			return $fetched;
 		}
 
+		$response = $fetched['response'];
+		$status   = (int) wp_remote_retrieve_response_code( $response );
 		if ( $status < 200 || $status >= 300 ) {
+			if ( ! Space_Lookup::should_send_key( $fetched['url'] ) ) {
+				return self::image_unavailable();
+			}
 			$parsed = self::parse_response( $status, (string) wp_remote_retrieve_body( $response ) );
 			$parsed = $parsed['ok'] ? array(
 				'code'    => 'spacefast_http_error',
@@ -132,6 +118,67 @@ class Api_Client {
 		return array(
 			'body'         => (string) wp_remote_retrieve_body( $response ),
 			'content_type' => (string) wp_remote_retrieve_header( $response, 'content-type' ),
+		);
+	}
+
+	/**
+	 * GETs a URL, following up to three redirects itself.
+	 *
+	 * Every hop is resolved and checked by Space_Lookup::next_redirect_url() (https,
+	 * public DNS host, no port or credentials) before any request is made. The
+	 * bearer key, when given, is attached only to hops that pass
+	 * Space_Lookup::should_send_key(). A relative Location on the API host stays on
+	 * the API host, so the key is deliberately re-sent there.
+	 *
+	 * @param string      $url     First URL; the caller must have validated it.
+	 * @param array       $options wp_safe_remote_get() arguments.
+	 * @param string|null $key     API key, or null to send none.
+	 * @return array{response: array, url: string}|WP_Error The last response and the
+	 *         URL it came from, or a `spacefast_image_unavailable` error.
+	 */
+	public static function get_following_redirects( string $url, array $options, ?string $key = null ) {
+		$options['redirection']        = 0;
+		$options['reject_unsafe_urls'] = true;
+		$options['headers']            = array( 'User-Agent' => 'spacefast-block/' . SPACEFAST_BLOCK_VERSION );
+
+		for ( $hop = 0; $hop <= self::MAX_REDIRECTS; $hop++ ) {
+			$request = $options;
+			if ( null !== $key && Space_Lookup::should_send_key( $url ) ) {
+				$request['headers']['Authorization'] = 'Bearer ' . $key;
+			}
+
+			$response = wp_safe_remote_get( $url, $request );
+			if ( is_wp_error( $response ) ) {
+				return self::image_unavailable();
+			}
+
+			$status = (int) wp_remote_retrieve_response_code( $response );
+			if ( $status < 300 || $status >= 400 ) {
+				return array(
+					'response' => $response,
+					'url'      => $url,
+				);
+			}
+
+			$next = Space_Lookup::next_redirect_url( $url, (string) wp_remote_retrieve_header( $response, 'location' ) );
+			if ( null === $next ) {
+				return self::image_unavailable();
+			}
+			$url = $next;
+		}
+		return self::image_unavailable();
+	}
+
+	/**
+	 * Error for an image that could not be fetched from a non-API host or through a redirect.
+	 *
+	 * @return WP_Error
+	 */
+	private static function image_unavailable(): WP_Error {
+		return new WP_Error(
+			'spacefast_image_unavailable',
+			__( 'We could not download that image.', 'spacefast-block' ),
+			array( 'status' => 502 )
 		);
 	}
 

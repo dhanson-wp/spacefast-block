@@ -114,4 +114,49 @@ class SpaceLookupTest extends TestCase {
 			'empty'        => array( '', false ),
 		);
 	}
+
+	/**
+	 * @dataProvider redirects
+	 */
+	public function test_next_redirect_url( $base, $location, $expected ) {
+		$this->assertSame( $expected, Space_Lookup::next_redirect_url( $base, $location ) );
+	}
+
+	public function redirects() {
+		$api = 'https://api.spacefast.com/v1/spaces/x/thumbnail';
+		return array(
+			'absolute https'     => array( $api, 'https://cdn.example.com/a.png', 'https://cdn.example.com/a.png' ),
+			'http'               => array( $api, 'http://cdn.example.com/a.png', null ),
+			'ip literal'         => array( $api, 'https://93.184.216.34/a.png', null ),
+			'port'               => array( $api, 'https://cdn.example.com:8443/a.png', null ),
+			'credentials'        => array( $api, 'https://u@cdn.example.com/a.png', null ),
+			'root relative'      => array( $api, '/v1/files/a.png', 'https://api.spacefast.com/v1/files/a.png' ),
+			'path relative'      => array( $api, 'a.png', 'https://api.spacefast.com/v1/spaces/x/a.png' ),
+			'protocol relative'  => array( $api, '//cdn.example.com/a.png', 'https://cdn.example.com/a.png' ),
+			'protocol rel to ip' => array( $api, '//10.0.0.1/a.png', null ),
+			'javascript'         => array( $api, 'javascript:alert(1)', null ),
+			'empty'              => array( $api, '', null ),
+			'backslash trick'    => array( $api, '/\\evil.com/a.png', null ),
+		);
+	}
+
+	/**
+	 * @dataProvider key_targets
+	 */
+	public function test_key_is_only_sent_to_the_api_host( $url, $expected ) {
+		$this->assertSame( $expected, Space_Lookup::should_send_key( $url ) );
+	}
+
+	public function key_targets() {
+		return array(
+			'api'             => array( 'https://api.spacefast.com/v1/spaces/x/thumbnail', true ),
+			'api uppercase'   => array( 'https://API.spacefast.com/v1/x', true ),
+			'other spacefast' => array( 'https://cdn.spacefast.com/a.png', false ),
+			'lookalike'       => array( 'https://api.spacefast.com.evil.com/a', false ),
+			'http api'        => array( 'http://api.spacefast.com/v1/x', false ),
+			'api with port'   => array( 'https://api.spacefast.com:444/v1/x', false ),
+			'credentials'     => array( 'https://api.spacefast.com@evil.com/x', false ),
+			'empty'           => array( '', false ),
+		);
+	}
 }

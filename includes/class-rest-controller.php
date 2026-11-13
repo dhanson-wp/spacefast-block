@@ -349,19 +349,27 @@ class Rest_Controller {
 			);
 		}
 
-		$limit = static function ( $args ) {
-			$args['limit_response_size'] = self::IMAGE_MAX_BYTES;
-			return $args;
-		};
-		add_filter( 'http_request_args', $limit );
-		$tmp = download_url( $url, 15 );
-		remove_filter( 'http_request_args', $limit );
-		if ( is_wp_error( $tmp ) ) {
+		$fetched = Api_Client::get_following_redirects(
+			$url,
+			array(
+				'timeout'             => 15,
+				'limit_response_size' => self::IMAGE_MAX_BYTES,
+			)
+		);
+		if ( is_wp_error( $fetched ) ) {
+			return $fetched;
+		}
+		$status = (int) wp_remote_retrieve_response_code( $fetched['response'] );
+		if ( $status < 200 || $status >= 300 ) {
 			return new WP_Error(
-				'spacefast_image_download_failed',
+				'spacefast_image_unavailable',
 				__( 'We could not download that image.', 'spacefast-block' ),
 				array( 'status' => 502 )
 			);
+		}
+		$tmp = self::write_temp_file( (string) wp_remote_retrieve_body( $fetched['response'] ), 'space-preview' );
+		if ( is_wp_error( $tmp ) ) {
+			return $tmp;
 		}
 
 		$name = pathinfo( (string) wp_parse_url( $url, PHP_URL_PATH ), PATHINFO_FILENAME );
@@ -401,13 +409,9 @@ class Rest_Controller {
 			return $image;
 		}
 
-		$tmp = wp_tempnam( $space_id );
-		if ( ! $tmp || false === file_put_contents( $tmp, $image['body'] ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			return new WP_Error(
-				'spacefast_image_save_failed',
-				__( 'We could not save that image.', 'spacefast-block' ),
-				array( 'status' => 500 )
-			);
+		$tmp = self::write_temp_file( $image['body'], $space_id );
+		if ( is_wp_error( $tmp ) ) {
+			return $tmp;
 		}
 
 		// The Space title is the alt text. A failed lookup just leaves it empty.
@@ -415,6 +419,28 @@ class Rest_Controller {
 		$alt     = is_array( $details ) && isset( $details['title'] ) && is_string( $details['title'] ) ? $details['title'] : '';
 
 		return self::attach_image( $tmp, 'space-preview-' . substr( $space_id, 4, 8 ), $post_id, $alt );
+	}
+
+	/**
+	 * Writes bytes to a temporary file, removing the file if the write fails.
+	 *
+	 * @param string $bytes File contents.
+	 * @param string $seed  Name hint for the temporary file.
+	 * @return string|WP_Error Temporary file path.
+	 */
+	private static function write_temp_file( string $bytes, string $seed ) {
+		$tmp = wp_tempnam( $seed );
+		if ( $tmp && false !== file_put_contents( $tmp, $bytes ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			return $tmp;
+		}
+		if ( $tmp ) {
+			wp_delete_file( $tmp );
+		}
+		return new WP_Error(
+			'spacefast_image_save_failed',
+			__( 'We could not save that image.', 'spacefast-block' ),
+			array( 'status' => 500 )
+		);
 	}
 
 	/**

@@ -83,6 +83,53 @@ class Space_Lookup {
 	}
 
 	/**
+	 * Resolves a redirect `Location` against the URL that returned it, and checks
+	 * the result with the same rules as a sideload URL.
+	 *
+	 * @param string $base     URL that answered with the redirect.
+	 * @param string $location Raw `Location` header value.
+	 * @return string|null Absolute https URL that may be followed, or null.
+	 */
+	public static function next_redirect_url( string $base, string $location ): ?string {
+		$location = trim( $location );
+		if ( '' === $location || preg_match( '/[\x00-\x20\x7f\\\\]/', $location ) ) {
+			return null;
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure PHP, tested without WordPress.
+		$base_parts = parse_url( $base );
+		if ( ! is_array( $base_parts ) || ! isset( $base_parts['scheme'], $base_parts['host'] ) ) {
+			return null;
+		}
+		$origin = $base_parts['scheme'] . '://' . $base_parts['host'];
+
+		if ( 0 === strpos( $location, '//' ) ) {
+			$candidate = 'https:' . $location;
+		} elseif ( '/' === $location[0] ) {
+			$candidate = $origin . $location;
+		} elseif ( preg_match( '#^[A-Za-z][A-Za-z0-9+.\-]*:#', $location ) ) {
+			$candidate = $location;
+		} else {
+			$path      = $base_parts['path'] ?? '/';
+			$candidate = $origin . substr( $path, 0, (int) strrpos( $path, '/' ) + 1 ) . $location;
+		}
+		return self::is_valid_sideload_url( $candidate ) ? $candidate : null;
+	}
+
+	/**
+	 * Whether the Spacefast key may be sent to a URL: https on the API host only.
+	 *
+	 * @param string $url Request URL.
+	 * @return bool
+	 */
+	public static function should_send_key( string $url ): bool {
+		if ( ! self::is_valid_sideload_url( $url ) ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Pure PHP, tested without WordPress.
+		return 'api.spacefast.com' === strtolower( rtrim( (string) parse_url( $url, PHP_URL_HOST ), '.' ) );
+	}
+
+	/**
 	 * Reads a string field from a row.
 	 *
 	 * @param array  $row   Row.
