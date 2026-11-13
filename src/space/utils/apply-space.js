@@ -1,9 +1,12 @@
+import { frameUrl } from './url';
+
 /**
  * Works out the block attributes to save when an editor picks a Space.
  *
  * Display settings the editor already chose are kept, except that a Space that
  * cannot be framed (private Spaces, or ones that refuse framing) can only be
- * shown as a card or a link, and can only open on its own page.
+ * shown as a card or a link, and can only open on its own page. A different
+ * Space opens at the path of the link that was pasted, or at its home page.
  *
  * @param {Object} attributes Current block attributes.
  * @param {Object} details    Space details from the resolve route.
@@ -22,6 +25,10 @@ export function getSpaceAttributes( attributes, details ) {
 		isFrameable,
 		isPrivate: !! details.isPrivate,
 	};
+
+	if ( frameUrl( details.url, '' ) !== frameUrl( attributes.url, '' ) ) {
+		next.startPath = details.startPath || '';
+	}
 
 	if ( ! isFrameable ) {
 		next.clickAction = 'link';

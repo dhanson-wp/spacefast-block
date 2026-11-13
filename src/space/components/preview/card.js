@@ -7,6 +7,7 @@ import {
 	getCardTitle,
 	getPrivateCta,
 } from '../../utils/display';
+import { frameUrl } from '../../utils/url';
 
 /**
  * The card mode, as it appears on the front end, with clicks turned off.
@@ -24,8 +25,8 @@ export default function CardPreview( { attributes } ) {
 		[ attributes.imageId, attributes.imageUrl ]
 	);
 	const imageUrl = getCardImageUrl( attributes, mediaUrl );
+	const href = frameUrl( attributes.url, attributes.startPath );
 	const {
-		url,
 		description,
 		hostname,
 		isPrivate,
@@ -38,7 +39,7 @@ export default function CardPreview( { attributes } ) {
 	return (
 		<a
 			className="wp-block-spacefast-space__card"
-			href={ url }
+			href={ href || undefined }
 			onClick={ ( event ) => event.preventDefault() }
 		>
 			{ imageUrl && (

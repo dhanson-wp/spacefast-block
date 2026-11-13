@@ -20,6 +20,7 @@ import {
 	getMinHeight,
 } from './utils/display';
 import useHostVerified from './utils/use-host-verified';
+import { frameUrl } from './utils/url';
 
 export default function Edit( {
 	attributes,
@@ -32,7 +33,8 @@ export default function Edit( {
 	const { createSuccessNotice, createErrorNotice } =
 		useDispatch( noticesStore );
 
-	const hasSpace = !! attributes.url;
+	// A URL that can't be used shows the placeholder, as the front end renders nothing.
+	const hasSpace = !! frameUrl( attributes.url, '' );
 	// Nothing is framed until the server confirms the host, as on the front end.
 	const { isHostVerified, setHostVerified } = useHostVerified(
 		attributes.url

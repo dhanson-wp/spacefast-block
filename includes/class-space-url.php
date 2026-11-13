@@ -121,6 +121,31 @@ class Space_Url {
 	}
 
 	/**
+	 * The start path a pasted link points to: its path, query, and fragment, as
+	 * frame_url() would use them, or '' for the home page or a path it refuses.
+	 *
+	 * @param string $input Raw URL or bare hostname with a path.
+	 * @return string Start path with a leading slash, or ''.
+	 */
+	public static function start_path( string $input ): string {
+		$base = self::normalize( $input );
+		if ( null === $base ) {
+			return '';
+		}
+
+		$input = trim( $input );
+		$after = strpos( $input, '://' );
+		$rest  = false === $after ? $input : substr( $input, $after + 3 );
+		$tail  = strpbrk( $rest, '/?#' );
+		if ( false === $tail ) {
+			return '';
+		}
+
+		$framed = self::frame_url( $base, $tail );
+		return $framed === $base ? '' : '/' . substr( $framed, strlen( $base ) );
+	}
+
+	/**
 	 * Returns the host of a URL, or an empty string when there isn't one.
 	 *
 	 * @param string $url URL.

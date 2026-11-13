@@ -69,6 +69,42 @@ describe( 'getSpaceAttributes', () => {
 		).toBe( 0 );
 	} );
 
+	it( 'opens a new Space at the path of the pasted link', () => {
+		const result = applied(
+			{ display: 'inline', url: '', startPath: '' },
+			{ ...details, startPath: '/some/path?x=1' }
+		);
+		expect( result.startPath ).toBe( '/some/path?x=1' );
+	} );
+
+	it( "drops the previous Space's start path", () => {
+		const result = applied(
+			{ display: 'inline', url: '', startPath: '/old' },
+			details
+		);
+		expect( result.startPath ).toBe( '' );
+	} );
+
+	it( 'keeps the start path when the same Space is applied again', () => {
+		const result = applied(
+			{ display: 'inline', url: details.url, startPath: '/docs' },
+			details
+		);
+		expect( result.startPath ).toBe( '/docs' );
+	} );
+
+	it( 'keeps the start path for the same Space written without a slash', () => {
+		const result = applied(
+			{
+				display: 'inline',
+				url: 'https://a.space.fast',
+				startPath: '/docs',
+			},
+			details
+		);
+		expect( result.startPath ).toBe( '/docs' );
+	} );
+
 	it( 'defaults a missing space id and image to empty values', () => {
 		const result = applied(
 			{ display: 'inline' },
@@ -105,6 +141,15 @@ describe( 'getRefreshedAttributes', () => {
 				imageUrl: 'https://a.space.fast/og.png',
 			} )
 		);
+	} );
+
+	it( "keeps the author's start path", () => {
+		expect(
+			getRefreshedAttributes(
+				{ display: 'inline', url: details.url, startPath: '/docs' },
+				details
+			).startPath
+		).toBeUndefined();
 	} );
 
 	it( 'uses the new image when none was chosen', () => {

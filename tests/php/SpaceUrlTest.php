@@ -201,4 +201,27 @@ final class SpaceUrlTest extends TestCase {
 			Space_Url::with_verified_host( array( 'a.example.com' => 100 ), '', 200, 500 )
 		);
 	}
+	/**
+	 * @dataProvider start_paths
+	 */
+	public function test_start_path( $input, $expected ) {
+		$this->assertSame( $expected, Space_Url::start_path( $input ) );
+	}
+
+	public function start_paths() {
+		return array(
+			'deep link'          => array( 'https://a.space.fast/some/path?x=1', '/some/path?x=1' ),
+			'bare host and path' => array( 'a.space.fast/docs', '/docs' ),
+			'fragment'           => array( 'https://a.space.fast/docs#intro', '/docs#intro' ),
+			'query only'         => array( 'https://a.space.fast/?x=1', '/?x=1' ),
+			'trailing slash'     => array( 'https://a.space.fast/docs/', '/docs/' ),
+			'home page'          => array( 'https://a.space.fast/', '' ),
+			'no slash'           => array( 'https://a.space.fast', '' ),
+			'parent traversal'   => array( 'https://a.space.fast/../x', '' ),
+			'at sign'            => array( 'https://a.space.fast/x@evil.com', '' ),
+			'empty segment'      => array( 'https://a.space.fast/docs//intro', '' ),
+			'invalid base'       => array( 'javascript:alert(1)', '' ),
+			'empty'              => array( '', '' ),
+		);
+	}
 }

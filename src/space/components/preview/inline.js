@@ -5,6 +5,7 @@ import { ResizableBox } from '@wordpress/components';
 import Branding from '../branding';
 import Frame from './frame';
 import { getCardTitle, hasAspectRatio } from '../../utils/display';
+import { frameUrl } from '../../utils/url';
 
 // Only the bottom edge resizes, as on the Cover block.
 const RESIZE_EDGES = {
@@ -41,6 +42,8 @@ export default function InlinePreview( {
 	// block, so the new height is that plus how far the handle moved.
 	const startHeight = useRef( 0 );
 
+	const href = frameUrl( attributes.url, attributes.startPath );
+
 	const heightAfter = ( delta ) =>
 		Math.max(
 			MIN_RESIZE_HEIGHT,
@@ -55,15 +58,17 @@ export default function InlinePreview( {
 						{ getCardTitle( attributes ) }
 					</span>
 					{ attributes.showBranding && <Branding /> }
-					<a
-						className="wp-block-spacefast-space__link"
-						href={ attributes.url }
-						target="_blank"
-						rel="noopener noreferrer"
-						onClick={ ( event ) => event.preventDefault() }
-					>
-						{ __( 'Open in new tab', 'spacefast-block' ) }
-					</a>
+					{ href && (
+						<a
+							className="wp-block-spacefast-space__link"
+							href={ href }
+							target="_blank"
+							rel="noopener noreferrer"
+							onClick={ ( event ) => event.preventDefault() }
+						>
+							{ __( 'Open in new tab', 'spacefast-block' ) }
+						</a>
+					) }
 				</div>
 			) }
 			<ResizableBox

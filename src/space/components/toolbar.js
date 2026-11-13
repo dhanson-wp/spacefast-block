@@ -13,6 +13,7 @@ import {
 	getFullHeightToggleAttributes,
 	isFullHeight,
 } from '../utils/display';
+import { frameUrl } from '../utils/url';
 
 /**
  * Block toolbar: the full-height toggle for the inline mode, and Replace,
@@ -32,7 +33,8 @@ export default function SpaceToolbar( {
 	isRefreshing,
 	isHostVerified,
 } ) {
-	const { minHeight, minHeightUnit, url } = attributes;
+	const { minHeight, minHeightUnit } = attributes;
+	const spaceUrl = frameUrl( attributes.url, attributes.startPath );
 
 	// The height to go back to when full height is turned off, as Cover keeps it.
 	const [ previousHeight, setPreviousHeight ] = useState( {
@@ -76,17 +78,19 @@ export default function SpaceToolbar( {
 				>
 					{ __( 'Refresh details', 'spacefast-block' ) }
 				</ToolbarButton>
-				<ToolbarButton
-					icon={ external }
-					label={ __( 'Open Space', 'spacefast-block' ) }
-					href={ url }
-					target="_blank"
-					rel="noopener noreferrer"
-					describedBy={ __(
-						'(opens in a new tab)',
-						'spacefast-block'
-					) }
-				/>
+				{ spaceUrl && (
+					<ToolbarButton
+						icon={ external }
+						label={ __( 'Open Space', 'spacefast-block' ) }
+						href={ spaceUrl }
+						target="_blank"
+						rel="noopener noreferrer"
+						describedBy={ __(
+							'(opens in a new tab)',
+							'spacefast-block'
+						) }
+					/>
+				) }
 			</BlockControls>
 		</>
 	);

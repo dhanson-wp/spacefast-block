@@ -259,7 +259,8 @@ class Rest_Controller {
 
 	/**
 	 * GET /resolve. Fetches a pasted URL once and reports what it is. A Space's
-	 * host is recorded as confirmed, so the front end may frame it.
+	 * host is recorded as confirmed, so the front end may frame it. The pasted
+	 * link's path comes back as `startPath`, so a deep link opens where it points.
 	 *
 	 * The server only ever requests the output of Space_Url::normalize().
 	 *
@@ -267,7 +268,8 @@ class Rest_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function resolve_url( WP_REST_Request $request ) {
-		$url = Space_Url::normalize( (string) $request->get_param( 'url' ) );
+		$input = (string) $request->get_param( 'url' );
+		$url   = Space_Url::normalize( $input );
 		if ( null === $url ) {
 			return new WP_Error(
 				'spacefast_invalid_url',
@@ -278,12 +280,16 @@ class Rest_Controller {
 
 		$space_id = (string) $request->get_param( 'spaceId' );
 		$space_id = Space_Lookup::is_valid_space_id( $space_id ) ? $space_id : '';
+		$extra    = array(
+			'spaceId'   => $space_id,
+			'startPath' => Space_Url::start_path( $input ),
+		);
 
 		$cache_key = self::RESOLVE_CACHE_PREFIX . md5( $url );
 		if ( ! $request->get_param( 'refresh' ) ) {
 			$cached = get_transient( $cache_key );
 			if ( is_array( $cached ) ) {
-				return self::space_response( $url, $cached, $space_id );
+				return self::space_response( $url, $cached, $extra );
 			}
 		}
 
@@ -323,7 +329,7 @@ class Rest_Controller {
 		}
 
 		set_transient( $cache_key, $metadata, self::RESOLVE_CACHE_TTL );
-		return self::space_response( $url, $metadata, $space_id );
+		return self::space_response( $url, $metadata, $extra );
 	}
 
 	/**
@@ -331,20 +337,12 @@ class Rest_Controller {
 	 *
 	 * @param string $url      Normalized Space URL.
 	 * @param array  $metadata Space metadata.
-	 * @param string $space_id Space ID, or ''.
+	 * @param array  $extra    Fields for this request: `spaceId` and `startPath`.
 	 * @return WP_REST_Response
 	 */
-	private static function space_response( string $url, array $metadata, string $space_id ): WP_REST_Response {
+	private static function space_response( string $url, array $metadata, array $extra ): WP_REST_Response {
 		Verified_Hosts::record( $url );
-		return new WP_REST_Response(
-			array_merge(
-				$metadata,
-				array(
-					'spaceId'  => $space_id,
-					'verified' => true,
-				)
-			)
-		);
+		return new WP_REST_Response( array_merge( $metadata, $extra, array( 'verified' => true ) ) );
 	}
 
 	/**
