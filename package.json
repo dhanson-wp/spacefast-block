@@ -1,0 +1,22 @@
+{
+	"name": "spacefast-block",
+	"version": "0.1.0",
+	"description": "Show any Spacefast Space inline, full page, as a card, or as a link.",
+	"license": "GPL-2.0-or-later",
+	"private": true,
+	"scripts": {
+		"build": "wp-scripts build --experimental-modules --webpack-copy-php",
+		"start": "wp-scripts start --experimental-modules --webpack-copy-php",
+		"lint:js": "wp-scripts lint-js",
+		"lint:css": "wp-scripts lint-style",
+		"test:unit": "wp-scripts test-unit-js --passWithNoTests"
+	},
+	"devDependencies": {
+		"@wordpress/block-editor": "^20.0.0",
+		"@wordpress/blocks": "^17.1.0",
+		"@wordpress/components": "^44.0.0",
+		"@wordpress/i18n": "^7.1.0",
+		"@wordpress/primitives": "^5.1.0",
+		"@wordpress/scripts": "^37.1.0"
+	}
+}
