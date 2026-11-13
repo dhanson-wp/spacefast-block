@@ -29,7 +29,7 @@ Paste the address of any public Space, or connect your Spacefast account in the 
 
 **Private Spaces**
 
-A private Space can't be shown in a frame. Connect your account and the block shows it as a card or a link, with a "Private" badge and a "Request access" link. Visitors sign in at Spacefast to see it. The badge text and the call to action are editable, and you can hide the badge.
+A private Space can't be shown in a frame, so the block shows it as a card or a link, with a "Private" badge and a "Request access" link. Pasting a private Space's address works without connecting your account. Visitors sign in at Spacefast to see it. The badge text and the call to action are editable, and you can hide the badge.
 
 **Branding**
 
@@ -49,15 +49,15 @@ For inline and full page display, yes. A public Space can be shown in a frame. A
 
 = What happens to private Spaces? =
 
-The block shows them as a card or a link with a "Private" badge. Visitors who follow the link sign in at Spacefast, and can request access if they don't have it. To show a private Space's thumbnail, connect your account in the editor.
+The block shows them as a card or a link with a "Private" badge. Visitors who follow the link sign in at Spacefast, and can request access if they don't have it. A pasted private address works without connecting your account. If you choose the Space from your account's search instead, you can also upload its thumbnail to the media library and show it on the card.
 
 = Is my Spacefast key shared with visitors or other site users? =
 
-No. The key is stored encrypted against your own user account, is used only on the server, and is never sent to the browser, saved in the block, or printed on a page. Other users of the site can't use your connection; each person connects their own account. Disconnecting removes the key, and deleting the plugin removes every stored key.
+No. The key is stored encrypted against your own user account, is used only on the server, and is never sent to the browser, saved in the block, or printed on a page. Other users of the site can't use your connection; each person connects their own account. Disconnecting removes the key from this site, and deleting the plugin removes every stored key. The key itself stays valid at Spacefast until it expires (after 30 days, or 7 days without use) unless you revoke it in your Spacefast dashboard.
 
 = What happens if a Space later goes private? =
 
-The block remembers whether a Space could be framed when you chose it, so an inline or full page block will show a blocked frame to visitors. Choose the Space again in the editor; the block then switches to a card or a link. Nothing else on the page is affected.
+The block remembers whether a Space could be framed when you chose it, so an inline or full page block will show a blocked frame to visitors. Select the block and choose "Refresh details" in its toolbar; the block then switches to a card or a link. Nothing else on the page is affected.
 
 = Why does Escape not close the modal while I'm using the Space? =
 
@@ -65,7 +65,7 @@ The Space runs inside a frame, and keystrokes inside a frame belong to the Space
 
 = Can I use a Space on a custom domain? =
 
-Yes. The block accepts any address that answers as a Spacefast Space, including custom domains.
+Yes. The block accepts any address that answers as a Spacefast Space, including custom domains. The site only frames a custom domain after the editor has confirmed it's a Space, which happens when you paste the address or choose "Refresh details". Until then, the block shows it as a card or a link.
 
 == Third-party services ==
 
@@ -91,7 +91,7 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 
 * A card shows the preview image the Space publishes. The visitor's browser loads it from that address, which can be the Space's own domain, s0.wp.com, or any other host the Space chose.
 * When a Space has no preview image of its own, Spacefast publishes an automatic screenshot address on s0.wp.com (mShots, run by Automattic). In that case the visitor's browser requests the image from s0.wp.com, and the request includes the Space's address. Privacy policy: https://automattic.com/privacy/
-* If the author saves the image to the media library, WordPress serves it from your own site and no outside host is contacted for it. To save a preview image from an address, your server downloads it from that address, sending no site or user details; for a private Space, the thumbnail comes from api.spacefast.com as described above.
+* If the author saves the image to the media library, WordPress serves it from your own site, and when visitors view it, no outside host is contacted. To save a preview image from an address, your server downloads it from that address, sending no site or user details; for a private Space, the thumbnail comes from api.spacefast.com as described above.
 
 == Changelog ==
 
