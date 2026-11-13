@@ -168,6 +168,50 @@ final class TakeoverTest extends TestCase {
 		$this->assertSame( $valid, Takeover::find_fullpage_block( $blocks ) );
 	}
 
+	public function test_skips_a_full_page_block_on_a_host_that_is_not_verified() {
+		$blocks = array(
+			$this->block(
+				'spacefast/space',
+				array(
+					'url'     => 'https://example.com/',
+					'display' => 'fullpage',
+				)
+			),
+		);
+
+		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
+		$this->assertNull( Takeover::find_fullpage_block( $blocks, array( 'other.example.com' => 1 ) ) );
+	}
+
+	public function test_finds_a_full_page_block_on_a_verified_host() {
+		$attrs  = array(
+			'url'     => 'https://spaces.example.com/',
+			'display' => 'fullpage',
+		);
+		$blocks = array( $this->block( 'spacefast/space', $attrs ) );
+
+		$this->assertSame( $attrs, Takeover::find_fullpage_block( $blocks, array( 'spaces.example.com' => 1 ) ) );
+	}
+
+	public function test_an_unverified_host_does_not_hide_a_later_space() {
+		$valid  = array(
+			'url'     => 'https://later.space.fast/',
+			'display' => 'fullpage',
+		);
+		$blocks = array(
+			$this->block(
+				'spacefast/space',
+				array(
+					'url'     => 'https://example.com/',
+					'display' => 'fullpage',
+				)
+			),
+			$this->block( 'spacefast/space', $valid ),
+		);
+
+		$this->assertSame( $valid, Takeover::find_fullpage_block( $blocks ) );
+	}
+
 	public function test_content_for_page_without_page_breaks_is_the_whole_content() {
 		$this->assertSame( 'one', Takeover::content_for_page( 'one', 1 ) );
 		$this->assertSame( 'one', Takeover::content_for_page( 'one', 3 ) );

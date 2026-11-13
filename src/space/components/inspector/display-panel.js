@@ -9,6 +9,7 @@ import {
 } from '@wordpress/components';
 
 import {
+	canFrame,
 	getDisplayNotice,
 	getEffectiveDisplay,
 	isDisplayAvailable,
@@ -18,23 +19,25 @@ import useToolsPanelDropdownMenuProps from '../../utils/use-tools-panel-dropdown
 /**
  * The Display panel: which of the four modes shows the Space.
  *
- * @param {Object}                 props               Component props.
- * @param {Object}                 props.attributes    Block attributes.
- * @param {(next: Object) => void} props.setAttributes Updates block attributes.
- * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
+ * @param {Object}                 props                Component props.
+ * @param {Object}                 props.attributes     Block attributes.
+ * @param {(next: Object) => void} props.setAttributes  Updates block attributes.
+ * @param {string}                 props.clientId       Block client ID, used as the tools panel ID.
+ * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
  */
 export default function DisplayPanel( {
 	attributes,
 	setAttributes,
 	clientId,
+	isHostVerified,
 } ) {
 	const dropdownMenuProps = useToolsPanelDropdownMenuProps();
-	const { isFrameable } = attributes;
-	const display = getEffectiveDisplay( attributes );
+	const isFrameable = canFrame( attributes, isHostVerified );
+	const display = getEffectiveDisplay( attributes, isHostVerified );
 	// A Space that can't be framed falls back to a card, so that is its default.
 	const defaultDisplay = isFrameable ? 'inline' : 'card';
 	const reset = () => setAttributes( { display: defaultDisplay } );
-	const notice = getDisplayNotice( attributes );
+	const notice = getDisplayNotice( attributes, isHostVerified );
 
 	const options = [
 		{ value: 'inline', label: __( 'Inline', 'spacefast-block' ) },

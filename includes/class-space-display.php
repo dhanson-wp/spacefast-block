@@ -45,18 +45,32 @@ class Space_Display {
 	}
 
 	/**
+	 * Whether the Space may be put in a frame: it can be framed, and its host
+	 * may be framed (see Space_Url::may_frame_host()). A Space on a host that
+	 * may not be framed is treated exactly like one that cannot be framed.
+	 *
+	 * @param array $attributes         Block attributes.
+	 * @param bool  $host_may_be_framed Whether the Space's host may be framed.
+	 * @return bool
+	 */
+	public static function can_frame( array $attributes, bool $host_may_be_framed ): bool {
+		return $host_may_be_framed && (bool) ( $attributes['isFrameable'] ?? true );
+	}
+
+	/**
 	 * The mode the block is shown in. A Space that cannot be framed is shown as a
 	 * card, and an unknown mode as inline.
 	 *
-	 * @param array $attributes Block attributes.
+	 * @param array $attributes         Block attributes.
+	 * @param bool  $host_may_be_framed Whether the Space's host may be framed.
 	 * @return string
 	 */
-	public static function effective_display( array $attributes ): string {
+	public static function effective_display( array $attributes, bool $host_may_be_framed = true ): string {
 		$display = $attributes['display'] ?? 'inline';
 		if ( ! in_array( $display, self::DISPLAYS, true ) ) {
 			$display = 'inline';
 		}
-		return self::is_display_available( $display, (bool) ( $attributes['isFrameable'] ?? true ) ) ? $display : 'card';
+		return self::is_display_available( $display, self::can_frame( $attributes, $host_may_be_framed ) ) ? $display : 'card';
 	}
 
 	/**
@@ -75,13 +89,14 @@ class Space_Display {
 	 * The `min-height` for the block wrapper. Only the inline mode has a minimum
 	 * height, and an explicit aspect ratio takes precedence over it.
 	 *
-	 * @param array $attributes Block attributes.
+	 * @param array $attributes         Block attributes.
+	 * @param bool  $host_may_be_framed Whether the Space's host may be framed.
 	 * @return string|null CSS length, or null for none.
 	 */
-	public static function min_height( array $attributes ): ?string {
+	public static function min_height( array $attributes, bool $host_may_be_framed = true ): ?string {
 		$height = $attributes['minHeight'] ?? 0;
 		if (
-			'inline' !== self::effective_display( $attributes )
+			'inline' !== self::effective_display( $attributes, $host_may_be_framed )
 			|| ! is_numeric( $height )
 			|| $height <= 0
 			|| self::has_aspect_ratio( $attributes )
@@ -174,11 +189,12 @@ class Space_Display {
 	/**
 	 * Class names for the block wrapper, matching the editor.
 	 *
-	 * @param array $attributes Block attributes.
+	 * @param array $attributes         Block attributes.
+	 * @param bool  $host_may_be_framed Whether the Space's host may be framed.
 	 * @return string Space-separated class names.
 	 */
-	public static function block_class_names( array $attributes ): string {
-		$display = self::effective_display( $attributes );
+	public static function block_class_names( array $attributes, bool $host_may_be_framed = true ): string {
+		$display = self::effective_display( $attributes, $host_may_be_framed );
 		$classes = array( 'is-display-' . $display );
 		if ( 'card' === $display && 'none' !== self::card_image_source( $attributes ) ) {
 			$classes[] = 'has-image-' . ( 'side' === ( $attributes['imagePosition'] ?? 'top' ) ? 'side' : 'top' );

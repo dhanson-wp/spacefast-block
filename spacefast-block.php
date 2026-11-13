@@ -24,6 +24,7 @@ require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-url.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-display.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-metadata.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-lookup.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-verified-hosts.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-api-client.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-connection.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-rest-controller.php';

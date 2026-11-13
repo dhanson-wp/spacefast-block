@@ -162,3 +162,20 @@ export function frameUrl( url, startPath ) {
 	}
 	return result;
 }
+
+/**
+ * Whether a Space URL is on `space.fast` or one of its subdomains, which may
+ * always be framed. Any other host must be confirmed by the server first.
+ * Mirrors the `space.fast` part of `Space_Url::may_frame_host()`.
+ *
+ * @param {string} url Space URL.
+ * @return {boolean} True for a `space.fast` host.
+ */
+export function isSpacefastHost( url ) {
+	const base = normalizeSpaceUrl( url );
+	if ( ! base ) {
+		return false;
+	}
+	const host = base.slice( 'https://'.length, -1 );
+	return host === 'space.fast' || host.endsWith( '.space.fast' );
+}

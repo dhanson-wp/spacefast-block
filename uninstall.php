@@ -8,10 +8,13 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 /**
- * Deletes the stored keys and cached lookups for the current site.
+ * Deletes the stored keys, confirmed hosts, and cached lookups for the current site.
  */
 function spacefast_block_uninstall_site() {
 	global $wpdb;
+
+	// Hosts confirmed as Spaces.
+	delete_option( 'spacefast_block_space_hosts' );
 
 	// The encrypted Spacefast key, for every user.
 	delete_metadata( 'user', 0, '_spacefast_block_key', '', true );

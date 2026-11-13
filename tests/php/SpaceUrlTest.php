@@ -132,4 +132,73 @@ final class SpaceUrlTest extends TestCase {
 	public function test_hostname_of_garbage_is_empty() {
 		$this->assertSame( '', Space_Url::hostname( 'not a url' ) );
 	}
+	/**
+	 * @dataProvider frameable_hosts
+	 */
+	public function test_may_frame_host( $host, $verified, $expected ) {
+		$this->assertSame( $expected, Space_Url::may_frame_host( $host, $verified ) );
+	}
+
+	public function frameable_hosts() {
+		$verified = array( 'spaces.example.com' => 1700000000 );
+		return array(
+			'space.fast apex'         => array( 'space.fast', array(), true ),
+			'space.fast subdomain'    => array( 'a.space.fast', array(), true ),
+			'deep subdomain'          => array( 'a.b.space.fast', array(), true ),
+			'verified host'           => array( 'spaces.example.com', $verified, true ),
+			'unverified host'         => array( 'example.com', $verified, false ),
+			'verified host uppercase' => array( 'Spaces.Example.com', $verified, true ),
+			'lookalike suffix'        => array( 'evilspace.fast', array(), false ),
+			'suffix trick'            => array( 'a.space.fast.evil.com', array(), false ),
+			'subdomain of verified'   => array( 'x.spaces.example.com', $verified, false ),
+			'empty host'              => array( '', array( '' => 1 ), false ),
+			'nothing verified'        => array( 'example.com', array(), false ),
+		);
+	}
+
+	public function test_with_verified_host_adds_the_host_with_its_time() {
+		$this->assertSame(
+			array(
+				'a.example.com' => 100,
+				'b.example.com' => 200,
+			),
+			Space_Url::with_verified_host( array( 'a.example.com' => 100 ), 'b.example.com', 200, 500 )
+		);
+	}
+
+	public function test_with_verified_host_refreshes_a_known_host() {
+		$this->assertSame(
+			array( 'a.example.com' => 300 ),
+			Space_Url::with_verified_host( array( 'a.example.com' => 100 ), 'A.Example.com', 300, 500 )
+		);
+	}
+
+	public function test_with_verified_host_prunes_the_oldest_past_the_cap() {
+		$hosts = array(
+			'new.example.com'    => 300,
+			'oldest.example.com' => 100,
+			'older.example.com'  => 200,
+		);
+		$this->assertSame(
+			array(
+				'new.example.com'   => 300,
+				'added.example.com' => 400,
+			),
+			Space_Url::with_verified_host( $hosts, 'added.example.com', 400, 2 )
+		);
+	}
+
+	public function test_with_verified_host_drops_malformed_entries() {
+		$this->assertSame(
+			array( 'b.example.com' => 200 ),
+			Space_Url::with_verified_host( array( 0 => 'junk', 'a.example.com' => 'soon' ), 'b.example.com', 200, 500 )
+		);
+	}
+
+	public function test_with_verified_host_ignores_an_empty_host() {
+		$this->assertSame(
+			array( 'a.example.com' => 100 ),
+			Space_Url::with_verified_host( array( 'a.example.com' => 100 ), '', 200, 500 )
+		);
+	}
 }

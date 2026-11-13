@@ -338,4 +338,41 @@ final class SpaceDisplayTest extends TestCase {
 			)
 		);
 	}
+	public function test_can_frame_needs_a_frameable_space_on_a_host_that_may_be_framed() {
+		$this->assertTrue( Space_Display::can_frame( array(), true ) );
+		$this->assertTrue( Space_Display::can_frame( array( 'isFrameable' => true ), true ) );
+		$this->assertFalse( Space_Display::can_frame( array( 'isFrameable' => false ), true ) );
+		$this->assertFalse( Space_Display::can_frame( array( 'isFrameable' => true ), false ) );
+	}
+
+	/**
+	 * @dataProvider framed_modes
+	 */
+	public function test_effective_display_is_a_card_when_the_host_may_not_be_framed( $display ) {
+		$this->assertSame( 'card', Space_Display::effective_display( array( 'display' => $display ), false ) );
+	}
+
+	public function test_effective_display_keeps_card_and_link_when_the_host_may_not_be_framed() {
+		$this->assertSame( 'card', Space_Display::effective_display( array( 'display' => 'card' ), false ) );
+		$this->assertSame( 'link', Space_Display::effective_display( array( 'display' => 'link' ), false ) );
+	}
+
+	public function test_min_height_is_null_when_the_host_may_not_be_framed() {
+		$this->assertNull(
+			Space_Display::min_height(
+				array(
+					'display'   => 'inline',
+					'minHeight' => 420,
+				),
+				false
+			)
+		);
+	}
+
+	public function test_class_names_show_a_card_when_the_host_may_not_be_framed() {
+		$this->assertSame(
+			'is-display-card has-image-top',
+			Space_Display::block_class_names( $this->class_attributes( array( 'display' => 'fullpage' ) ), false )
+		);
+	}
 }

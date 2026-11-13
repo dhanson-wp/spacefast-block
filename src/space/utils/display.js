@@ -18,26 +18,51 @@ export function isDisplayAvailable( display, isFrameable ) {
 }
 
 /**
+ * Whether the Space may be put in a frame: it can be framed, and the server
+ * has confirmed its host. A Space on a host that hasn't been confirmed is
+ * treated exactly like one that cannot be framed. Mirrors
+ * `Space_Display::can_frame()`.
+ *
+ * @param {Object}  attributes             Block attributes.
+ * @param {boolean} attributes.isFrameable Whether the Space can be framed.
+ * @param {boolean} isHostVerified         Whether the Space's host may be framed.
+ * @return {boolean} True if the Space may be framed.
+ */
+export function canFrame( { isFrameable }, isHostVerified ) {
+	return !! isHostVerified && !! isFrameable;
+}
+
+/**
  * The mode the block is shown in. A Space that can no longer be framed is
  * shown as a card, as the front end does.
  *
- * @param {Object}  attributes             Block attributes.
- * @param {string}  attributes.display     Display mode.
- * @param {boolean} attributes.isFrameable Whether the Space can be framed.
+ * @param {Object}  attributes         Block attributes.
+ * @param {string}  attributes.display Display mode.
+ * @param {boolean} isHostVerified     Whether the Space's host may be framed.
  * @return {string} Display mode.
  */
-export function getEffectiveDisplay( { display, isFrameable } ) {
-	return isDisplayAvailable( display, isFrameable ) ? display : 'card';
+export function getEffectiveDisplay( attributes, isHostVerified = true ) {
+	const { display } = attributes;
+	return isDisplayAvailable( display, canFrame( attributes, isHostVerified ) )
+		? display
+		: 'card';
 }
 
 /**
  * The note shown when a Space can only be a card or a link, or '' when every
  * mode is available.
  *
- * @param {Object} attributes Block attributes.
+ * @param {Object}  attributes     Block attributes.
+ * @param {boolean} isHostVerified Whether the Space's host may be framed.
  * @return {string} Notice text.
  */
-export function getDisplayNotice( attributes ) {
+export function getDisplayNotice( attributes, isHostVerified = true ) {
+	if ( ! isHostVerified ) {
+		return __(
+			"This link hasn't been confirmed as a Spacefast Space. Refresh details to check it.",
+			'spacefast-block'
+		);
+	}
 	if ( attributes.isFrameable ) {
 		return '';
 	}
@@ -68,13 +93,14 @@ export function hasAspectRatio( attributes ) {
  * The inline `min-height` for the block wrapper. Only the inline mode has a
  * minimum height, and an explicit aspect ratio takes precedence over it.
  *
- * @param {Object} attributes Block attributes.
+ * @param {Object}  attributes     Block attributes.
+ * @param {boolean} isHostVerified Whether the Space's host may be framed.
  * @return {string|undefined} CSS length, or undefined for none.
  */
-export function getMinHeight( attributes ) {
+export function getMinHeight( attributes, isHostVerified = true ) {
 	const { minHeight, minHeightUnit } = attributes;
 	if (
-		getEffectiveDisplay( attributes ) !== 'inline' ||
+		getEffectiveDisplay( attributes, isHostVerified ) !== 'inline' ||
 		! minHeight ||
 		hasAspectRatio( attributes )
 	) {
@@ -227,11 +253,12 @@ export function getCardImageUrl( attributes, mediaUrl = '' ) {
 /**
  * Class names for the block wrapper, shared with the front end.
  *
- * @param {Object} attributes Block attributes.
+ * @param {Object}  attributes     Block attributes.
+ * @param {boolean} isHostVerified Whether the Space's host may be framed.
  * @return {string} Space-separated class names.
  */
-export function getBlockClassNames( attributes ) {
-	const display = getEffectiveDisplay( attributes );
+export function getBlockClassNames( attributes, isHostVerified = true ) {
+	const display = getEffectiveDisplay( attributes, isHostVerified );
 	const classNames = [ `is-display-${ display }` ];
 	if ( display === 'card' && hasCardImage( attributes ) ) {
 		classNames.push( `has-image-${ attributes.imagePosition || 'top' }` );

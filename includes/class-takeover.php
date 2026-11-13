@@ -41,30 +41,33 @@ class Takeover {
 	/**
 	 * The first Spacefast block in a parsed block tree that is shown full page,
 	 * searching inner blocks depth first, in document order. A Space that can't
-	 * be framed is shown as a card, and one without a usable URL renders
-	 * nothing, so neither takes over.
+	 * be framed, or whose host may not be framed, is shown as a card, and one
+	 * without a usable URL renders nothing, so neither takes over.
 	 *
 	 * Synced patterns (`core/block`) are not expanded; a full-page block inside
 	 * one doesn't take over.
 	 *
-	 * @param array $blocks Output of parse_blocks().
+	 * @param array $blocks         Output of parse_blocks().
+	 * @param array $verified_hosts Hosts confirmed as Spaces, host => time confirmed.
 	 * @return array|null The block's attributes, or null.
 	 */
-	public static function find_fullpage_block( array $blocks ): ?array {
+	public static function find_fullpage_block( array $blocks, array $verified_hosts = array() ): ?array {
 		foreach ( $blocks as $block ) {
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
 			$attrs = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
-			if (
-				'spacefast/space' === ( $block['blockName'] ?? null )
-				&& 'fullpage' === Space_Display::effective_display( $attrs )
-				&& '' !== Space_Url::frame_url( (string) ( $attrs['url'] ?? '' ), (string) ( $attrs['startPath'] ?? '' ) )
-			) {
-				return $attrs;
+			if ( 'spacefast/space' === ( $block['blockName'] ?? null ) ) {
+				$href = Space_Url::frame_url( (string) ( $attrs['url'] ?? '' ), (string) ( $attrs['startPath'] ?? '' ) );
+				if (
+					'' !== $href
+					&& 'fullpage' === Space_Display::effective_display( $attrs, Space_Url::may_frame_host( Space_Url::hostname( $href ), $verified_hosts ) )
+				) {
+					return $attrs;
+				}
 			}
 			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-				$found = self::find_fullpage_block( $block['innerBlocks'] );
+				$found = self::find_fullpage_block( $block['innerBlocks'], $verified_hosts );
 				if ( null !== $found ) {
 					return $found;
 				}
@@ -136,7 +139,7 @@ class Takeover {
 
 		// Only the blocks on the page of the post being shown.
 		$content      = self::content_for_page( $post->post_content, (int) get_query_var( 'page' ) );
-		self::$active = self::find_fullpage_block( parse_blocks( $content ) );
+		self::$active = self::find_fullpage_block( parse_blocks( $content ), Verified_Hosts::all() );
 		return self::$active;
 	}
 

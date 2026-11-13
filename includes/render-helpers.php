@@ -13,6 +13,7 @@
 use Spacefast_Block\Space_Display;
 use Spacefast_Block\Space_Url;
 use Spacefast_Block\Takeover;
+use Spacefast_Block\Verified_Hosts;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -63,13 +64,14 @@ function spacefast_block_private_badge_html( array $attributes ): string {
  * Whether the block opens its Space in a modal: the click action asks for one
  * and the Space can be framed. Only the card and link modes have a trigger.
  *
- * @param array $attributes Block attributes.
+ * @param array $attributes         Block attributes.
+ * @param bool  $host_may_be_framed Whether the Space's host may be framed.
  * @return bool
  */
-function spacefast_block_has_modal( array $attributes ): bool {
+function spacefast_block_has_modal( array $attributes, bool $host_may_be_framed ): bool {
 	return 'modal' === ( $attributes['clickAction'] ?? 'modal' )
-		&& ( $attributes['isFrameable'] ?? true )
-		&& in_array( Space_Display::effective_display( $attributes ), array( 'card', 'link' ), true );
+		&& Space_Display::can_frame( $attributes, $host_may_be_framed )
+		&& in_array( Space_Display::effective_display( $attributes, $host_may_be_framed ), array( 'card', 'link' ), true );
 }
 
 /**
@@ -79,15 +81,16 @@ function spacefast_block_has_modal( array $attributes ): bool {
  *
  * @param array  $attributes Block attributes.
  * @param string $href       Link target.
+ * @param bool   $has_modal  Whether a modal shows the Space.
  * @return string Attribute string with a leading space.
  */
-function spacefast_block_trigger_attributes( array $attributes, string $href ): string {
+function spacefast_block_trigger_attributes( array $attributes, string $href, bool $has_modal ): string {
 	$html = ' href="' . esc_url( $href ) . '"';
 
 	if ( ! empty( $attributes['openInNewTab'] ) ) {
 		$html .= ' target="_blank" rel="noopener"';
 	}
-	if ( spacefast_block_has_modal( $attributes ) ) {
+	if ( $has_modal ) {
 		$html .= ' data-wp-on--click="actions.open"';
 	}
 	return $html;
@@ -138,15 +141,16 @@ function spacefast_block_card_image_html( array $attributes ): string {
  * @param array  $attributes Block attributes.
  * @param string $href       Link target.
  * @param string $image_html The card's image, from spacefast_block_card_image_html().
+ * @param bool   $has_modal  Whether a modal shows the Space.
  * @return string HTML.
  */
-function spacefast_block_card_html( array $attributes, string $href, string $image_html ): string {
+function spacefast_block_card_html( array $attributes, string $href, string $image_html, bool $has_modal ): string {
 	$is_private = ! empty( $attributes['isPrivate'] );
 	$show       = static function ( string $key ) use ( $attributes ): bool {
 		return (bool) ( $attributes[ $key ] ?? true );
 	};
 
-	$html  = '<a class="wp-block-spacefast-space__card"' . spacefast_block_trigger_attributes( $attributes, $href ) . '>';
+	$html  = '<a class="wp-block-spacefast-space__card"' . spacefast_block_trigger_attributes( $attributes, $href, $has_modal ) . '>';
 	$html .= $image_html;
 	$html .= '<span class="wp-block-spacefast-space__content">';
 	if ( $is_private && $show( 'showPrivateBadge' ) ) {
@@ -177,9 +181,10 @@ function spacefast_block_card_html( array $attributes, string $href, string $ima
  *
  * @param array  $attributes Block attributes.
  * @param string $href       Link target.
+ * @param bool   $has_modal  Whether a modal shows the Space.
  * @return string HTML.
  */
-function spacefast_block_link_html( array $attributes, string $href ): string {
+function spacefast_block_link_html( array $attributes, string $href, bool $has_modal ): string {
 	// The link is a theme button. Core loads its button styles on demand, so ask for
 	// them here; theme `elements.button` styles still apply on top.
 	if ( wp_style_is( 'wp-block-button', 'registered' ) ) {
@@ -197,7 +202,7 @@ function spacefast_block_link_html( array $attributes, string $href ): string {
 		__( 'Request access', 'spacefast-block' )
 	);
 	$html .= '<div class="wp-block-button">'
-		. '<a class="wp-block-button__link wp-element-button wp-block-spacefast-space__link"' . spacefast_block_trigger_attributes( $attributes, $href ) . '>'
+		. '<a class="wp-block-button__link wp-element-button wp-block-spacefast-space__link"' . spacefast_block_trigger_attributes( $attributes, $href, $has_modal ) . '>'
 		. esc_html( $label )
 		. '</a></div>';
 
@@ -343,6 +348,10 @@ function spacefast_block_takeover_html( array $attributes, string $href ): strin
 /**
  * The whole block: the wrapper and the markup for its display mode.
  *
+ * Only a host that may be framed (see Verified_Hosts) is put in a frame. Any
+ * other host is treated like a Space that cannot be framed: a card or a plain
+ * link, with no modal and no takeover.
+ *
  * @param array $attributes Block attributes.
  * @return string HTML, or '' when there is no usable Space URL.
  */
@@ -351,13 +360,15 @@ function spacefast_block_render( array $attributes ): string {
 	if ( '' === $href ) {
 		return '';
 	}
+	$host_may_be_framed = Verified_Hosts::may_frame( $href );
 
 	if ( empty( $attributes['hostname'] ) ) {
 		$attributes['hostname'] = Space_Url::hostname( $href );
 	}
 
-	$display     = Space_Display::effective_display( $attributes );
+	$display     = Space_Display::effective_display( $attributes, $host_may_be_framed );
 	$is_takeover = 'fullpage' === $display && Takeover::claim();
+	$has_modal   = spacefast_block_has_modal( $attributes, $host_may_be_framed );
 	$inner       = '';
 	if ( $is_takeover ) {
 		$inner = spacefast_block_takeover_html( $attributes, $href );
@@ -367,21 +378,20 @@ function spacefast_block_render( array $attributes ): string {
 			// Classes follow what the card actually shows.
 			$attributes['showImage'] = false;
 		}
-		$inner = spacefast_block_card_html( $attributes, $href, $image_html );
+		$inner = spacefast_block_card_html( $attributes, $href, $image_html, $has_modal );
 	} elseif ( 'link' === $display ) {
-		$inner = spacefast_block_link_html( $attributes, $href );
+		$inner = spacefast_block_link_html( $attributes, $href, $has_modal );
 	} else {
 		// Inline, and every full-page block that doesn't take over the page.
 		$inner = spacefast_block_inline_html( $attributes, $href );
 	}
 
-	$has_modal = spacefast_block_has_modal( $attributes );
 	if ( $has_modal ) {
 		$inner .= spacefast_block_modal_html( $attributes, $href );
 	}
 
-	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes ) . ( $is_takeover ? ' is-fullpage-takeover' : '' ) );
-	$height  = Space_Display::min_height( $attributes );
+	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes, $host_may_be_framed ) . ( $is_takeover ? ' is-fullpage-takeover' : '' ) );
+	$height  = Space_Display::min_height( $attributes, $host_may_be_framed );
 	if ( null !== $height ) {
 		$wrapper['style'] = 'min-height:' . $height . ';';
 	}

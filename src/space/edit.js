@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { useState } from '@wordpress/element';
 import { useDispatch } from '@wordpress/data';
 import { useBlockProps } from '@wordpress/block-editor';
+import { Notice, Spinner } from '@wordpress/components';
 import { store as noticesStore } from '@wordpress/notices';
 
 import SpacePlaceholder from './components/placeholder';
@@ -13,7 +14,12 @@ import {
 	getRefreshedAttributes,
 	getSpaceAttributes,
 } from './utils/apply-space';
-import { getBlockClassNames, getMinHeight } from './utils/display';
+import {
+	getBlockClassNames,
+	getDisplayNotice,
+	getMinHeight,
+} from './utils/display';
+import useHostVerified from './utils/use-host-verified';
 
 export default function Edit( {
 	attributes,
@@ -27,14 +33,28 @@ export default function Edit( {
 		useDispatch( noticesStore );
 
 	const hasSpace = !! attributes.url;
-	const minHeight = hasSpace ? getMinHeight( attributes ) : undefined;
+	// Nothing is framed until the server confirms the host, as on the front end.
+	const { isHostVerified, setHostVerified } = useHostVerified(
+		attributes.url
+	);
+	const isCheckingHost = hasSpace && isHostVerified === undefined;
+	const canFrameHost = isHostVerified === true;
+	const minHeight =
+		hasSpace && ! isCheckingHost
+			? getMinHeight( attributes, canFrameHost )
+			: undefined;
 	const blockProps = useBlockProps( {
-		className: hasSpace ? getBlockClassNames( attributes ) : undefined,
+		className:
+			hasSpace && ! isCheckingHost
+				? getBlockClassNames( attributes, canFrameHost )
+				: undefined,
 		style: minHeight ? { minHeight } : undefined,
 	} );
 
-	const applySpace = ( details ) =>
+	const applySpace = ( details ) => {
+		setHostVerified( details.url, details.verified );
 		setAttributes( getSpaceAttributes( attributes, details ) );
+	};
 
 	/**
 	 * Fetches the Space's details again, skipping the server's cache.
@@ -50,6 +70,7 @@ export default function Edit( {
 				attributes.spaceId,
 				true
 			);
+			setHostVerified( details.url, details.verified );
 			setAttributes(
 				getRefreshedAttributes( attributes, details, { resetImage } )
 			);
@@ -71,6 +92,14 @@ export default function Edit( {
 		);
 	}
 
+	if ( isCheckingHost ) {
+		return (
+			<div { ...blockProps }>
+				<Spinner />
+			</div>
+		);
+	}
+
 	return (
 		<>
 			<SpaceToolbar
@@ -78,6 +107,7 @@ export default function Edit( {
 				setAttributes={ setAttributes }
 				onRefresh={ () => refreshDetails() }
 				isRefreshing={ isRefreshing }
+				isHostVerified={ canFrameHost }
 			/>
 			<SpaceInspector
 				attributes={ attributes }
@@ -85,13 +115,34 @@ export default function Edit( {
 				clientId={ clientId }
 				onResetImage={ () => refreshDetails( { resetImage: true } ) }
 				isRefreshing={ isRefreshing }
+				isHostVerified={ canFrameHost }
 			/>
 			<div { ...blockProps }>
+				{ ! canFrameHost && (
+					<Notice
+						className="wp-block-spacefast-space__host-notice"
+						status="warning"
+						isDismissible={ false }
+						actions={ [
+							{
+								label: __(
+									'Refresh details',
+									'spacefast-block'
+								),
+								onClick: () => refreshDetails(),
+								disabled: isRefreshing,
+							},
+						] }
+					>
+						{ getDisplayNotice( attributes, false ) }
+					</Notice>
+				) }
 				<SpacePreview
 					attributes={ attributes }
 					setAttributes={ setAttributes }
 					isSelected={ isSelected }
 					toggleSelection={ toggleSelection }
+					isHostVerified={ canFrameHost }
 				/>
 			</div>
 		</>

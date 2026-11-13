@@ -19,9 +19,11 @@ const PREVIEWS = {
  * @param {(next: Object) => void}       props.setAttributes   Updates block attributes.
  * @param {boolean}                      props.isSelected      Whether the block is selected.
  * @param {(isEnabled: boolean) => void} props.toggleSelection Turns block selection on or off.
+ * @param {boolean}                      props.isHostVerified  Whether the Space's host may be framed.
  */
-export default function SpacePreview( props ) {
+export default function SpacePreview( { isHostVerified, ...props } ) {
 	const Preview =
-		PREVIEWS[ getEffectiveDisplay( props.attributes ) ] || InlinePreview;
+		PREVIEWS[ getEffectiveDisplay( props.attributes, isHostVerified ) ] ||
+		InlinePreview;
 	return <Preview { ...props } />;
 }

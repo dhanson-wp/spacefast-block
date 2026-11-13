@@ -133,6 +133,58 @@ class Space_Url {
 	}
 
 	/**
+	 * Whether a host may be shown in a frame: it is `space.fast` or one of its
+	 * subdomains, or a host the resolve route confirmed as a Space.
+	 *
+	 * @param string $host           Hostname.
+	 * @param array  $verified_hosts Confirmed hosts, host => time confirmed.
+	 * @return bool
+	 */
+	public static function may_frame_host( string $host, array $verified_hosts ): bool {
+		$host = strtolower( $host );
+		if ( '' === $host ) {
+			return false;
+		}
+		if ( 'space.fast' === $host || '.space.fast' === substr( $host, -11 ) ) {
+			return true;
+		}
+		return array_key_exists( $host, $verified_hosts );
+	}
+
+	/**
+	 * The confirmed host list with one host added or its time renewed. Entries
+	 * that aren't host => time are dropped, and past the cap the hosts confirmed
+	 * longest ago are pruned.
+	 *
+	 * @param array  $verified_hosts Confirmed hosts, host => time confirmed.
+	 * @param string $host           Host to add.
+	 * @param int    $now            Current time.
+	 * @param int    $max            Most hosts to keep.
+	 * @return array<string, int>
+	 */
+	public static function with_verified_host( array $verified_hosts, string $host, int $now, int $max ): array {
+		$hosts = array();
+		foreach ( $verified_hosts as $name => $time ) {
+			if ( is_string( $name ) && '' !== $name && is_int( $time ) ) {
+				$hosts[ $name ] = $time;
+			}
+		}
+
+		$host = strtolower( $host );
+		if ( '' === $host ) {
+			return $hosts;
+		}
+		unset( $hosts[ $host ] );
+		$hosts[ $host ] = $now;
+
+		$excess = count( $hosts ) - $max;
+		for ( $i = 0; $i < $excess; $i++ ) {
+			unset( $hosts[ array_keys( $hosts, min( $hosts ), true )[0] ] );
+		}
+		return $hosts;
+	}
+
+	/**
 	 * Whether a host is a dotted DNS name: not an IP literal, not `localhost`.
 	 *
 	 * @param string $host Lowercased host.

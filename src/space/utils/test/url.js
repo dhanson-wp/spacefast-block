@@ -1,4 +1,4 @@
-import { frameUrl, looksLikeUrl } from '../url';
+import { frameUrl, isSpacefastHost, looksLikeUrl } from '../url';
 
 describe( 'looksLikeUrl', () => {
 	it( 'accepts a bare Space host', () => {
@@ -95,4 +95,21 @@ describe( 'frameUrl', () => {
 			expect( frameUrl( url, '' ) ).toBe( '' );
 		}
 	);
+} );
+
+describe( 'isSpacefastHost', () => {
+	// Mirrors the space.fast cases of Space_Url::may_frame_host() in tests/php/SpaceUrlTest.php.
+	it.each( [
+		[ 'https://space.fast/', true ],
+		[ 'https://a.space.fast/', true ],
+		[ 'https://a.b.space.fast/docs', true ],
+		[ 'https://A.Space.Fast/', true ],
+		[ 'https://evilspace.fast/', false ],
+		[ 'https://a.space.fast.evil.com/', false ],
+		[ 'https://example.com/', false ],
+		[ 'javascript:alert(1)', false ],
+		[ '', false ],
+	] )( '%s is %p', ( url, expected ) => {
+		expect( isSpacefastHost( url ) ).toBe( expected );
+	} );
 } );

@@ -31,12 +31,13 @@ function isStartPathIgnored( { url, startPath } ) {
 /**
  * The block sidebar. Panels for other display modes stay hidden.
  *
- * @param {Object}                 props               Component props.
- * @param {Object}                 props.attributes    Block attributes.
- * @param {(next: Object) => void} props.setAttributes Updates block attributes.
- * @param {string}                 props.clientId      Block client ID.
- * @param {() => void}             props.onResetImage  Puts the Space's own card image back.
- * @param {boolean}                props.isRefreshing  Whether the Space's details are being fetched.
+ * @param {Object}                 props                Component props.
+ * @param {Object}                 props.attributes     Block attributes.
+ * @param {(next: Object) => void} props.setAttributes  Updates block attributes.
+ * @param {string}                 props.clientId       Block client ID.
+ * @param {() => void}             props.onResetImage   Puts the Space's own card image back.
+ * @param {boolean}                props.isRefreshing   Whether the Space's details are being fetched.
+ * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
  */
 export default function SpaceInspector( {
 	attributes,
@@ -44,14 +45,18 @@ export default function SpaceInspector( {
 	clientId,
 	onResetImage,
 	isRefreshing,
+	isHostVerified,
 } ) {
-	const display = getEffectiveDisplay( attributes );
+	const display = getEffectiveDisplay( attributes, isHostVerified );
 	const itemProps = { attributes, setAttributes, clientId };
 
 	return (
 		<>
 			<InspectorControls>
-				<DisplayPanel { ...itemProps } />
+				<DisplayPanel
+					{ ...itemProps }
+					isHostVerified={ isHostVerified }
+				/>
 				{ display === 'inline' && (
 					<Panel
 						label={ __( 'Inline', 'spacefast-block' ) }
@@ -93,7 +98,10 @@ export default function SpaceInspector( {
 					/>
 				) }
 				{ ( display === 'card' || display === 'link' ) && (
-					<ClickPanel { ...itemProps } />
+					<ClickPanel
+						{ ...itemProps }
+						isHostVerified={ isHostVerified }
+					/>
 				) }
 				{ attributes.isPrivate && (
 					<Panel

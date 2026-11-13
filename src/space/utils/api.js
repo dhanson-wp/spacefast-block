@@ -37,6 +37,18 @@ export function resolveSpace( url, spaceId = '', refresh = false ) {
 }
 
 /**
+ * Asks whether a Space's host may be framed: it is on space.fast, or the
+ * resolve route has confirmed it. Fetches nothing outside the site.
+ *
+ * @param {string} url Space URL.
+ * @return {Promise<{verified: boolean}>} Whether the host is confirmed.
+ */
+export function checkVerifiedHost( url ) {
+	const query = new URLSearchParams( { url } );
+	return apiFetch( { path: `${ NAMESPACE }/verified?${ query }` } );
+}
+
+/**
  * Lists the connected account's Spaces.
  *
  * @param {string} search Optional search text.

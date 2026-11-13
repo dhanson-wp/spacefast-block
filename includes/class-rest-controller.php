@@ -117,6 +117,21 @@ class Rest_Controller {
 		);
 		register_rest_route(
 			self::NAMESPACE,
+			'/verified',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'check_verified' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+				'args'                => array(
+					'url' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+			)
+		);
+		register_rest_route(
+			self::NAMESPACE,
 			'/sideload',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -231,7 +246,20 @@ class Rest_Controller {
 	}
 
 	/**
-	 * GET /resolve. Fetches a pasted URL once and reports what it is.
+	 * GET /verified. Whether the editor may frame a block's Space: its host is
+	 * on `space.fast` or was confirmed by /resolve. Fetches nothing.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function check_verified( WP_REST_Request $request ): WP_REST_Response {
+		$url = Space_Url::normalize( (string) $request->get_param( 'url' ) );
+		return new WP_REST_Response( array( 'verified' => null !== $url && Verified_Hosts::may_frame( $url ) ) );
+	}
+
+	/**
+	 * GET /resolve. Fetches a pasted URL once and reports what it is. A Space's
+	 * host is recorded as confirmed, so the front end may frame it.
 	 *
 	 * The server only ever requests the output of Space_Url::normalize().
 	 *
@@ -255,7 +283,7 @@ class Rest_Controller {
 		if ( ! $request->get_param( 'refresh' ) ) {
 			$cached = get_transient( $cache_key );
 			if ( is_array( $cached ) ) {
-				return new WP_REST_Response( array_merge( $cached, array( 'spaceId' => $space_id ) ) );
+				return self::space_response( $url, $cached, $space_id );
 			}
 		}
 
@@ -295,7 +323,28 @@ class Rest_Controller {
 		}
 
 		set_transient( $cache_key, $metadata, self::RESOLVE_CACHE_TTL );
-		return new WP_REST_Response( array_merge( $metadata, array( 'spaceId' => $space_id ) ) );
+		return self::space_response( $url, $metadata, $space_id );
+	}
+
+	/**
+	 * The /resolve response for a confirmed Space. Records its host first.
+	 *
+	 * @param string $url      Normalized Space URL.
+	 * @param array  $metadata Space metadata.
+	 * @param string $space_id Space ID, or ''.
+	 * @return WP_REST_Response
+	 */
+	private static function space_response( string $url, array $metadata, string $space_id ): WP_REST_Response {
+		Verified_Hosts::record( $url );
+		return new WP_REST_Response(
+			array_merge(
+				$metadata,
+				array(
+					'spaceId'  => $space_id,
+					'verified' => true,
+				)
+			)
+		);
 	}
 
 	/**

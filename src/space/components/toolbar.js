@@ -18,17 +18,19 @@ import {
  * Block toolbar: the full-height toggle for the inline mode, and Replace,
  * Refresh details, and Open Space.
  *
- * @param {Object}                 props               Component props.
- * @param {Object}                 props.attributes    Block attributes.
- * @param {(next: Object) => void} props.setAttributes Updates block attributes.
- * @param {() => void}             props.onRefresh     Fetches the Space's details again.
- * @param {boolean}                props.isRefreshing  Whether a refresh is running.
+ * @param {Object}                 props                Component props.
+ * @param {Object}                 props.attributes     Block attributes.
+ * @param {(next: Object) => void} props.setAttributes  Updates block attributes.
+ * @param {() => void}             props.onRefresh      Fetches the Space's details again.
+ * @param {boolean}                props.isRefreshing   Whether a refresh is running.
+ * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
  */
 export default function SpaceToolbar( {
 	attributes,
 	setAttributes,
 	onRefresh,
 	isRefreshing,
+	isHostVerified,
 } ) {
 	const { minHeight, minHeightUnit, url } = attributes;
 
@@ -49,7 +51,8 @@ export default function SpaceToolbar( {
 
 	return (
 		<>
-			{ getEffectiveDisplay( attributes ) === 'inline' && (
+			{ getEffectiveDisplay( attributes, isHostVerified ) ===
+				'inline' && (
 				<BlockControls group="block">
 					<FullHeightAlignmentControl
 						isActive={ isFullHeight( attributes ) }

@@ -1,4 +1,5 @@
 import {
+	canFrame,
 	getBlockClassNames,
 	getDisplayNotice,
 	hasAspectRatio,
@@ -481,6 +482,61 @@ describe( 'getDisplayNotice', () => {
 			getDisplayNotice( { isFrameable: false, isPrivate: false } )
 		).toBe(
 			"This Space can't be shown inside a page, so it can only be shown as a card or link."
+		);
+	} );
+} );
+
+describe( 'a host that has not been confirmed', () => {
+	// Mirrors the host cases in tests/php/SpaceDisplayTest.php.
+	it( 'can frame only a frameable Space on a confirmed host', () => {
+		expect( canFrame( { isFrameable: true }, true ) ).toBe( true );
+		expect( canFrame( { isFrameable: false }, true ) ).toBe( false );
+		expect( canFrame( { isFrameable: true }, false ) ).toBe( false );
+	} );
+
+	it.each( [ 'inline', 'fullpage' ] )( 'shows %s as a card', ( display ) => {
+		expect(
+			getEffectiveDisplay( { display, isFrameable: true }, false )
+		).toBe( 'card' );
+	} );
+
+	it.each( [ 'card', 'link' ] )( 'keeps %s', ( display ) => {
+		expect(
+			getEffectiveDisplay( { display, isFrameable: true }, false )
+		).toBe( display );
+	} );
+
+	it( 'has no minimum height', () => {
+		expect(
+			getMinHeight(
+				{ display: 'inline', isFrameable: true, minHeight: 420 },
+				false
+			)
+		).toBeUndefined();
+	} );
+
+	it( 'gets card class names', () => {
+		expect(
+			getBlockClassNames(
+				{
+					display: 'fullpage',
+					isFrameable: true,
+					isPrivate: false,
+					showImage: true,
+					imagePosition: 'top',
+					imageUrl: 'https://a.space.fast/og.png',
+					imageId: 0,
+				},
+				false
+			)
+		).toBe( 'is-display-card has-image-top' );
+	} );
+
+	it( 'explains why the Space is only a card or link', () => {
+		expect(
+			getDisplayNotice( { isFrameable: true, isPrivate: false }, false )
+		).toBe(
+			"This link hasn't been confirmed as a Spacefast Space. Refresh details to check it."
 		);
 	} );
 } );

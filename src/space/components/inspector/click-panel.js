@@ -7,18 +7,26 @@ import {
 
 import Panel from './panel';
 import ToggleItem from './toggle-item';
+import { canFrame } from '../../utils/display';
 
 /**
  * The Click behavior panel for cards and links: open the Space in a modal or
  * go to it.
  *
- * @param {Object}                 props               Component props.
- * @param {Object}                 props.attributes    Block attributes.
- * @param {(next: Object) => void} props.setAttributes Updates block attributes.
- * @param {string}                 props.clientId      Block client ID, used as the tools panel ID.
+ * @param {Object}                 props                Component props.
+ * @param {Object}                 props.attributes     Block attributes.
+ * @param {(next: Object) => void} props.setAttributes  Updates block attributes.
+ * @param {string}                 props.clientId       Block client ID, used as the tools panel ID.
+ * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
  */
-export default function ClickPanel( { attributes, setAttributes, clientId } ) {
-	const { clickAction, isFrameable } = attributes;
+export default function ClickPanel( {
+	attributes,
+	setAttributes,
+	clientId,
+	isHostVerified,
+} ) {
+	const { clickAction } = attributes;
+	const isFrameable = canFrame( attributes, isHostVerified );
 	// A Space that can't be framed can't open in a modal either.
 	const defaultAction = isFrameable ? 'modal' : 'link';
 	const itemProps = { attributes, setAttributes, clientId };
