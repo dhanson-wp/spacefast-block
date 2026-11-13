@@ -26,7 +26,7 @@ const variations = [
 		name: 'fullpage',
 		title: __( 'Spacefast full page', 'spacefast-block' ),
 		description: __(
-			'Show a Spacefast Space across the page, between your header and footer.',
+			'Show a Spacefast Space at full screen below your header, with your footer after it.',
 			'spacefast-block'
 		),
 		icon,

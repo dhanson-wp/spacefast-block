@@ -15,7 +15,7 @@ export default function FullPagePreview( { attributes, isSelected } ) {
 		<>
 			<p className="wp-block-spacefast-space__editor-label">
 				{ __(
-					'Fills the page between your header and footer',
+					'Fills the screen below your header; your footer follows',
 					'spacefast-block'
 				) }
 			</p>

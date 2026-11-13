@@ -7,7 +7,7 @@ import {
 import {
 	FOOTER_SELECTORS,
 	HEADER_SELECTORS,
-	computeOffsets,
+	computeLayout,
 	pickFirstVisible,
 } from './utils/takeover';
 
@@ -29,6 +29,9 @@ const TAKEOVER_BODY_CLASSES = [
 	'spacefast-hide-footer',
 ];
 const REGION_ATTRIBUTE = 'data-spacefast-region';
+
+// Set on <html> once the header and footer are measured.
+const READY_CLASS = 'spacefast-takeover-ready';
 const WRAPPER_SELECTOR = '.wp-block-spacefast-space';
 const DIALOG_SELECTOR = 'dialog.wp-block-spacefast-space__modal';
 
@@ -177,9 +180,9 @@ function findRegion( doc, selectors ) {
 }
 
 /**
- * Measure the header, footer, and admin bar and write `--spacefast-top` and
- * `--spacefast-bottom` on <html>, now and whenever any of them or the window
- * changes size.
+ * Measure the header, footer, and admin bar and write `--spacefast-admin-bar`,
+ * `--spacefast-header`, and `--spacefast-footer` on <html>, now and whenever
+ * any of them or the window changes size.
  *
  * @param {Document} doc The document.
  * @param {Window}   win The window.
@@ -206,16 +209,21 @@ function startTakeover( doc, win ) {
 	let frame = 0;
 	const update = () => {
 		frame = 0;
-		const { top, bottom } = computeOffsets( {
+		const layout = computeLayout( {
 			adminBarHeight: height( adminBar ),
 			headerHeight: height( header ),
 			footerHeight: height( footer ),
-			viewportHeight: win.innerHeight,
 			hideHeader,
 			hideFooter,
 		} );
-		root.style.setProperty( '--spacefast-top', `${ top }px` );
-		root.style.setProperty( '--spacefast-bottom', `${ bottom }px` );
+		root.style.setProperty(
+			'--spacefast-admin-bar',
+			`${ layout.adminBar }px`
+		);
+		root.style.setProperty( '--spacefast-header', `${ layout.header }px` );
+		root.style.setProperty( '--spacefast-footer', `${ layout.footer }px` );
+		// Switches the styles from the pinned fallback to the measured layout.
+		root.classList.add( READY_CLASS );
 	};
 	const schedule = () => {
 		if ( ! frame ) {
@@ -240,6 +248,7 @@ function startTakeover( doc, win ) {
 		observer?.disconnect();
 		header?.removeAttribute( REGION_ATTRIBUTE );
 		footer?.removeAttribute( REGION_ATTRIBUTE );
+		root.classList.remove( READY_CLASS );
 		if ( frame ) {
 			win.cancelAnimationFrame( frame );
 		}

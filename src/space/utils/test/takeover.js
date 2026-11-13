@@ -1,8 +1,7 @@
 import {
 	FOOTER_SELECTORS,
 	HEADER_SELECTORS,
-	computeOffsets,
-	footerRegionHeight,
+	computeLayout,
 	pickFirstVisible,
 } from '../takeover';
 
@@ -62,79 +61,54 @@ describe( 'pickFirstVisible', () => {
 	} );
 } );
 
-describe( 'footerRegionHeight', () => {
-	it( 'keeps a footer up to 30% of the viewport', () => {
-		expect( footerRegionHeight( 120, 800 ) ).toBe( 120 );
-		expect( footerRegionHeight( 240, 800 ) ).toBe( 240 );
-	} );
-
-	it( 'caps a taller footer at 30% of the viewport', () => {
-		expect( footerRegionHeight( 320, 800 ) ).toBe( 240 );
-		expect( footerRegionHeight( 900, 800 ) ).toBe( 240 );
-	} );
-
-	it( 'is 0 for no footer', () => {
-		expect( footerRegionHeight( 0, 800 ) ).toBe( 0 );
-	} );
-} );
-
-describe( 'computeOffsets', () => {
+describe( 'computeLayout', () => {
 	const base = {
 		adminBarHeight: 0,
 		headerHeight: 90,
 		footerHeight: 200,
-		viewportHeight: 800,
 		hideHeader: false,
 		hideFooter: false,
 	};
 
-	it( 'puts the Space between the header and the footer', () => {
-		expect( computeOffsets( base ) ).toEqual( { top: 90, bottom: 200 } );
-	} );
-
-	it( 'adds the admin bar above the header', () => {
-		expect( computeOffsets( { ...base, adminBarHeight: 32 } ) ).toEqual( {
-			top: 122,
-			bottom: 200,
+	it( 'gives the header and the footer their natural heights', () => {
+		expect( computeLayout( base ) ).toEqual( {
+			adminBar: 0,
+			header: 90,
+			footer: 200,
 		} );
 	} );
 
-	it( 'keeps the admin bar when the header is hidden', () => {
+	it( 'reports the admin bar separately from the header', () => {
+		expect( computeLayout( { ...base, adminBarHeight: 32 } ) ).toEqual( {
+			adminBar: 32,
+			header: 90,
+			footer: 200,
+		} );
+	} );
+
+	it( 'never caps a tall footer, because it sits below the Space', () => {
+		expect( computeLayout( { ...base, footerHeight: 700 } ).footer ).toBe(
+			700
+		);
+	} );
+
+	it( 'zeroes the header when it is hidden and keeps the admin bar', () => {
 		expect(
-			computeOffsets( { ...base, adminBarHeight: 46, hideHeader: true } )
-		).toEqual( { top: 46, bottom: 200 } );
+			computeLayout( { ...base, adminBarHeight: 46, hideHeader: true } )
+		).toEqual( { adminBar: 46, header: 0, footer: 200 } );
 	} );
 
 	it( 'zeroes the footer when it is hidden', () => {
-		expect( computeOffsets( { ...base, hideFooter: true } ) ).toEqual( {
-			top: 90,
-			bottom: 0,
+		expect( computeLayout( { ...base, hideFooter: true } ) ).toEqual( {
+			adminBar: 0,
+			header: 90,
+			footer: 0,
 		} );
-	} );
-
-	it( 'zeroes both when both are hidden', () => {
-		expect(
-			computeOffsets( { ...base, hideHeader: true, hideFooter: true } )
-		).toEqual( { top: 0, bottom: 0 } );
-	} );
-
-	it( 'caps a tall footer', () => {
-		expect(
-			computeOffsets( {
-				...base,
-				footerHeight: 700,
-				viewportHeight: 600,
-			} )
-		).toEqual( { top: 90, bottom: 180 } );
 	} );
 
 	it( 'treats a missing header or footer as 0', () => {
 		expect(
-			computeOffsets( {
-				viewportHeight: 800,
-				hideHeader: false,
-				hideFooter: false,
-			} )
-		).toEqual( { top: 0, bottom: 0 } );
+			computeLayout( { hideHeader: false, hideFooter: false } )
+		).toEqual( { adminBar: 0, header: 0, footer: 0 } );
 	} );
 } );
