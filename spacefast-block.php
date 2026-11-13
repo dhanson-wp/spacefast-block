@@ -21,6 +21,7 @@ define( 'SPACEFAST_BLOCK_VERSION', '0.1.0' );
 define( 'SPACEFAST_BLOCK_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-url.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-relay.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-display.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-metadata.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-lookup.php';
@@ -28,6 +29,8 @@ require_once SPACEFAST_BLOCK_DIR . 'includes/class-verified-hosts.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-api-client.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-connection.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-rest-controller.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-relay-page.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-relay-controller.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-takeover.php';
 require_once SPACEFAST_BLOCK_DIR . 'includes/render-helpers.php';
 
@@ -64,4 +67,5 @@ function maybe_show_build_notice() {
 add_action( 'admin_notices', __NAMESPACE__ . '\maybe_show_build_notice' );
 
 Rest_Controller::init();
+Relay_Controller::init();
 Takeover::init();
