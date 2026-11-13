@@ -21,7 +21,8 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 	overflow: hidden;
 }
 
-:where(.wp-block-spacefast-space.is-display-inline:not(.has-aspect-ratio)) {
+:where(.wp-block-spacefast-space.is-display-inline:not(.has-aspect-ratio)),
+:where(.wp-block-spacefast-space.is-display-fullpage:not(.has-aspect-ratio)) {
 	min-height: 600px;
 }
 
@@ -85,7 +86,12 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 	}
 }
 
-// Card.
+// Card. The block is a size container so the side layout can collapse to the
+// top layout when the card itself is narrow, wherever it sits on the page.
+.wp-block-spacefast-space.is-display-card {
+	container-type: inline-size;
+}
+
 :where(.wp-block-spacefast-space.is-display-card) {
 	overflow: hidden;
 	border: 1px solid $spacefast-muted-border;
@@ -147,6 +153,48 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 :where(.wp-block-spacefast-space__cta) {
 	font-weight: 600;
 	text-decoration: underline;
+}
+
+// A narrow card stacks its image above the text.
+@container (max-width: 599px) {
+
+	.has-image-side .wp-block-spacefast-space__card {
+		flex-direction: column;
+	}
+
+	:where(.has-image-side .wp-block-spacefast-space__image) {
+		flex: none;
+		width: 100%;
+		min-height: 0;
+		aspect-ratio: 1.91 / 1;
+	}
+}
+
+// Keyboard focus on the card and the link.
+:where(.wp-block-spacefast-space__card:focus-visible) {
+	outline: 2px solid currentcolor;
+	outline-offset: -4px;
+}
+
+:where(.wp-block-spacefast-space__link:focus-visible) {
+	outline: 2px solid currentcolor;
+	outline-offset: 2px;
+}
+
+:where(.wp-block-spacefast-space__card:hover .wp-block-spacefast-space__title) {
+	text-decoration: underline;
+}
+
+// Motion is only added for people who haven't asked for less of it.
+@media (prefers-reduced-motion: no-preference) {
+
+	:where(.wp-block-spacefast-space__card) {
+		transition: background-color 0.15s ease;
+	}
+
+	:where(.wp-block-spacefast-space__card:hover) {
+		background-color: color-mix(in srgb, currentcolor 5%, transparent);
+	}
 }
 
 // Link: a theme button, with the badge and mark beside it.

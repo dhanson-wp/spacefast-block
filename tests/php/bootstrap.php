@@ -7,6 +7,7 @@
 
 require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-space-url.php';
+require_once dirname( __DIR__, 2 ) . '/includes/class-space-display.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-space-metadata.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-api-client.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-connection.php';

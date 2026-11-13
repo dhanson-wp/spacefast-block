@@ -1,0 +1,296 @@
+<?php
+/**
+ * Front-end markup for the Spacefast block.
+ *
+ * These functions build the same structure and class names as the editor
+ * preview in src/space/components/preview, so both look alike. Every value is
+ * escaped where it is printed. The modal and full-page tasks reuse
+ * spacefast_block_frame_html().
+ *
+ * @package Spacefast_Block
+ */
+
+use Spacefast_Block\Space_Display;
+use Spacefast_Block\Space_Url;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * The Spacefast mark, matching src/space/icon.js. The path data lives only here.
+ *
+ * @return string SVG markup.
+ */
+function spacefast_block_branding_svg(): string {
+	$path = 'M144.237 162.275L78.975 156.525C50.225 153.938 37 144.45 37 115.7L37 92.125C37 63.0875 51.375 49 80.125 49L200.875 49C229.625 49 244 63.375 244 92.125V109.375H157.75V97.875L123.25 97.875V99.025C123.25 110.525 124.687 111.388 136.188 112.25L199.15 117.713C227.9 120.013 244 132.663 244 161.413V188.438C244 217.188 229.625 231.563 200.875 231.563L80.125 231.563C51.0875 231.563 37 217.188 37 188.438V165.438H123.25L123.25 182.688L157.75 182.688L157.75 176.075C157.75 164.575 155.738 163.138 144.237 162.275Z';
+
+	return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="16" height="16" aria-hidden="true" focusable="false">'
+		. '<rect width="1024" height="1024" fill="#1EFE57"/>'
+		. '<path fill="#000000" transform="translate(21.6902 22.4527) scale(3.48975)" d="' . esc_attr( $path ) . '"/>'
+		. '</svg>';
+}
+
+/**
+ * The branding mark: the icon and the word "Spacefast".
+ *
+ * @return string HTML.
+ */
+function spacefast_block_branding_html(): string {
+	return '<span class="wp-block-spacefast-space__branding">'
+		. spacefast_block_branding_svg()
+		. esc_html__( 'Spacefast', 'spacefast-block' )
+		. '</span>';
+}
+
+/**
+ * The private badge: a lock icon (the `lock` icon from @wordpress/icons) and a label.
+ *
+ * @param array $attributes Block attributes.
+ * @return string HTML.
+ */
+function spacefast_block_private_badge_html( array $attributes ): string {
+	$path  = 'M9.25 10.75H7.75C7.47386 10.75 7.25 10.9739 7.25 11.25V17.25C7.25 17.5261 7.47386 17.75 7.75 17.75H16.25C16.5261 17.75 16.75 17.5261 16.75 17.25V11.25C16.75 10.9739 16.5261 10.75 16.25 10.75H14.75M9.25 10.75V7.5C9.25 5.98122 10.4812 4.75 12 4.75C13.5188 4.75 14.75 5.98122 14.75 7.5V10.75M9.25 10.75H14.75';
+	$label = Space_Display::private_label( $attributes, __( 'Private', 'spacefast-block' ) );
+
+	return '<span class="wp-block-spacefast-space__badge">'
+		. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="fill:none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">'
+		. '<path d="' . esc_attr( $path ) . '"/></svg>'
+		. esc_html( $label )
+		. '</span>';
+}
+
+/**
+ * Attributes for a card or link anchor: a plain link to the Space. It opens in a
+ * new tab only when asked, and carries the hook the modal script listens for
+ * only when a modal can show the Space.
+ *
+ * @param array  $attributes Block attributes.
+ * @param string $href       Link target.
+ * @return string Attribute string with a leading space.
+ */
+function spacefast_block_trigger_attributes( array $attributes, string $href ): string {
+	$html = ' href="' . esc_url( $href ) . '"';
+
+	if ( ! empty( $attributes['openInNewTab'] ) ) {
+		$html .= ' target="_blank" rel="noopener"';
+	}
+	if ( 'modal' === ( $attributes['clickAction'] ?? 'modal' ) && ( $attributes['isFrameable'] ?? true ) ) {
+		$html .= ' data-wp-on--click="actions.open"';
+	}
+	return $html;
+}
+
+/**
+ * The card's image, or '' when it shows none. A media library image is printed
+ * with WordPress's own image markup; otherwise the Space's preview image is
+ * used, unless the Space is private.
+ *
+ * @param array $attributes Block attributes.
+ * @return string HTML.
+ */
+function spacefast_block_card_image_html( array $attributes ): string {
+	$source = Space_Display::card_image_source( $attributes );
+
+	if ( 'attachment' === $source ) {
+		$html = wp_get_attachment_image(
+			(int) $attributes['imageId'],
+			'large',
+			false,
+			array(
+				'class' => 'wp-block-spacefast-space__image',
+				'alt'   => '',
+			)
+		);
+		if ( '' !== $html ) {
+			return $html;
+		}
+		// The library image is gone; fall back to the Space's own image if visitors can load it.
+		$source = ! empty( $attributes['isPrivate'] ) || empty( $attributes['imageUrl'] ) ? 'none' : 'url';
+	}
+
+	if ( 'url' !== $source ) {
+		return '';
+	}
+	$url = esc_url( (string) $attributes['imageUrl'], array( 'http', 'https' ) );
+	if ( '' === $url ) {
+		return '';
+	}
+	return '<img class="wp-block-spacefast-space__image" src="' . $url . '" alt="" loading="lazy">';
+}
+
+/**
+ * The card: one link holding the image, title, description, hostname, private
+ * badge and call to action, and the branding mark.
+ *
+ * @param array  $attributes Block attributes.
+ * @param string $href       Link target.
+ * @param string $image_html The card's image, from spacefast_block_card_image_html().
+ * @return string HTML.
+ */
+function spacefast_block_card_html( array $attributes, string $href, string $image_html ): string {
+	$is_private = ! empty( $attributes['isPrivate'] );
+	$show       = static function ( string $key ) use ( $attributes ): bool {
+		return (bool) ( $attributes[ $key ] ?? true );
+	};
+
+	$html  = '<a class="wp-block-spacefast-space__card"' . spacefast_block_trigger_attributes( $attributes, $href ) . '>';
+	$html .= $image_html;
+	$html .= '<span class="wp-block-spacefast-space__content">';
+	if ( $is_private && $show( 'showPrivateBadge' ) ) {
+		$html .= spacefast_block_private_badge_html( $attributes );
+	}
+	$html .= '<span class="wp-block-spacefast-space__title">' . esc_html( Space_Display::card_title( $attributes ) ) . '</span>';
+	if ( $show( 'showDescription' ) && ! empty( $attributes['description'] ) ) {
+		$html .= '<span class="wp-block-spacefast-space__description">' . esc_html( $attributes['description'] ) . '</span>';
+	}
+	if ( $show( 'showHostname' ) && ! empty( $attributes['hostname'] ) ) {
+		$html .= '<span class="wp-block-spacefast-space__hostname">' . esc_html( $attributes['hostname'] ) . '</span>';
+	}
+	if ( $is_private ) {
+		$html .= '<span class="wp-block-spacefast-space__cta">'
+			. esc_html( Space_Display::private_cta( $attributes, __( 'Request access', 'spacefast-block' ) ) )
+			. '</span>';
+	}
+	if ( $show( 'showBranding' ) ) {
+		$html .= spacefast_block_branding_html();
+	}
+	$html .= '</span></a>';
+
+	return $html;
+}
+
+/**
+ * The link mode: a theme button, with the private badge and branding mark beside it.
+ *
+ * @param array  $attributes Block attributes.
+ * @param string $href       Link target.
+ * @return string HTML.
+ */
+function spacefast_block_link_html( array $attributes, string $href ): string {
+	$html = '';
+	if ( ! empty( $attributes['isPrivate'] ) && ( $attributes['showPrivateBadge'] ?? true ) ) {
+		$html .= spacefast_block_private_badge_html( $attributes );
+	}
+
+	$label = Space_Display::link_label(
+		$attributes,
+		__( 'Open Space', 'spacefast-block' ),
+		__( 'Request access', 'spacefast-block' )
+	);
+	$html .= '<div class="wp-block-button">'
+		. '<a class="wp-block-button__link wp-element-button wp-block-spacefast-space__link"' . spacefast_block_trigger_attributes( $attributes, $href ) . '>'
+		. esc_html( $label )
+		. '</a></div>';
+
+	if ( $attributes['showBranding'] ?? true ) {
+		$html .= spacefast_block_branding_html();
+	}
+	return $html;
+}
+
+/**
+ * The Space in a frame.
+ *
+ * Supported `$args`:
+ * - `src`     (bool)        Print the `src` attribute. Default true; the modal passes false and sets it when it opens.
+ * - `loading` (string|null) `lazy`, `eager`, or '' for no attribute. Default null: lazy when the block asks for it.
+ *
+ * @param array $attributes Block attributes.
+ * @param array $args       Options, described above.
+ * @return string HTML, or '' when the Space's URL isn't usable.
+ */
+function spacefast_block_frame_html( array $attributes, array $args = array() ): string {
+	$src = Space_Url::frame_url( (string) ( $attributes['url'] ?? '' ), (string) ( $attributes['startPath'] ?? '' ) );
+	if ( '' === $src ) {
+		return '';
+	}
+
+	$loading = $args['loading'] ?? null;
+	if ( null === $loading ) {
+		$loading = ( $attributes['lazyLoad'] ?? true ) ? 'lazy' : '';
+	}
+	if ( ! in_array( $loading, array( 'lazy', 'eager' ), true ) ) {
+		$loading = '';
+	}
+
+	$title = ! empty( $attributes['title'] ) ? $attributes['title'] : __( 'Spacefast Space', 'spacefast-block' );
+
+	$html = '<iframe class="wp-block-spacefast-space__frame"';
+	if ( $args['src'] ?? true ) {
+		$html .= ' src="' . esc_url( $src ) . '"';
+	}
+	$html .= ' title="' . esc_attr( $title ) . '"';
+	if ( '' !== $loading ) {
+		$html .= ' loading="' . esc_attr( $loading ) . '"';
+	}
+	if ( $attributes['allowFullscreen'] ?? true ) {
+		$html .= ' allowfullscreen';
+	}
+	$html .= ' referrerpolicy="strict-origin-when-cross-origin"'
+		. ' sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"></iframe>';
+
+	return $html;
+}
+
+/**
+ * The inline mode: an optional title bar above the frame.
+ *
+ * @param array  $attributes Block attributes.
+ * @param string $href       Link to the Space.
+ * @return string HTML.
+ */
+function spacefast_block_inline_html( array $attributes, string $href ): string {
+	$html = '';
+	if ( ! empty( $attributes['showTitleBar'] ) ) {
+		$html .= '<div class="wp-block-spacefast-space__title-bar">'
+			. '<span class="wp-block-spacefast-space__title">' . esc_html( Space_Display::card_title( $attributes ) ) . '</span>';
+		if ( $attributes['showBranding'] ?? true ) {
+			$html .= spacefast_block_branding_html();
+		}
+		$html .= '<a class="wp-block-spacefast-space__link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener">'
+			. esc_html__( 'Open in new tab', 'spacefast-block' )
+			. '</a></div>';
+	}
+	return $html . spacefast_block_frame_html( $attributes );
+}
+
+/**
+ * The whole block: the wrapper and the markup for its display mode.
+ *
+ * @param array $attributes Block attributes.
+ * @return string HTML, or '' when there is no usable Space URL.
+ */
+function spacefast_block_render( array $attributes ): string {
+	$href = Space_Url::frame_url( (string) ( $attributes['url'] ?? '' ), (string) ( $attributes['startPath'] ?? '' ) );
+	if ( '' === $href ) {
+		return '';
+	}
+
+	if ( empty( $attributes['hostname'] ) ) {
+		$attributes['hostname'] = Space_Url::hostname( $href );
+	}
+
+	$display = Space_Display::effective_display( $attributes );
+	$inner   = '';
+	if ( 'card' === $display ) {
+		$image_html = spacefast_block_card_image_html( $attributes );
+		if ( '' === $image_html ) {
+			// Classes follow what the card actually shows.
+			$attributes['showImage'] = false;
+		}
+		$inner = spacefast_block_card_html( $attributes, $href, $image_html );
+	} elseif ( 'link' === $display ) {
+		$inner = spacefast_block_link_html( $attributes, $href );
+	} else {
+		// Full page looks like inline until the takeover arrives.
+		$inner = spacefast_block_inline_html( $attributes, $href );
+	}
+
+	$wrapper = array( 'class' => Space_Display::block_class_names( $attributes ) );
+	$height  = Space_Display::min_height( $attributes );
+	if ( null !== $height ) {
+		$wrapper['style'] = 'min-height:' . $height . ';';
+	}
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped output, and every part of $inner is escaped where it is built.
+	return '<div ' . get_block_wrapper_attributes( $wrapper ) . '>' . $inner . '</div>';
+}
