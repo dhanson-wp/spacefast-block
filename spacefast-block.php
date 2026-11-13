@@ -20,6 +20,9 @@ defined( 'ABSPATH' ) || exit;
 define( 'SPACEFAST_BLOCK_VERSION', '0.1.0' );
 define( 'SPACEFAST_BLOCK_DIR', plugin_dir_path( __FILE__ ) );
 
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-url.php';
+require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-metadata.php';
+
 /**
  * Registers the Spacefast block from the build directory.
  */
