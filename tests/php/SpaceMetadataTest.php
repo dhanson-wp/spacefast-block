@@ -96,6 +96,19 @@ final class SpaceMetadataTest extends TestCase {
 		$this->assertFalse( $meta['isPrivate'] );
 	}
 
+	public function test_second_csp_policy_that_blocks_framing_is_honoured() {
+		$policies = array( 'frame-ancestors *', "frame-ancestors 'none'" );
+
+		foreach ( array( $policies, implode( ', ', $policies ) ) as $csp ) {
+			$headers = array(
+				'x-spacefast-runtime'     => '1',
+				'content-security-policy' => $csp,
+			);
+			$meta    = Space_Metadata::from_response( self::URL, 200, $headers, '' );
+			$this->assertFalse( $meta['isFrameable'] );
+		}
+	}
+
 	public function test_frame_ancestors_wildcard_allows_framing() {
 		$headers = array(
 			'x-spacefast-runtime'     => '1',

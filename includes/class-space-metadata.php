@@ -165,11 +165,14 @@ class Space_Metadata {
 		if ( '' !== self::header( $headers, 'x-frame-options' ) ) {
 			return true;
 		}
+		// Several policies may be comma-joined; every one applies, so any one can block.
 		$csp = self::header( $headers, 'content-security-policy' );
-		foreach ( explode( ';', $csp ) as $directive ) {
-			$tokens = preg_split( '/\s+/', trim( strtolower( $directive ) ) );
-			if ( 'frame-ancestors' === $tokens[0] ) {
-				return ! in_array( '*', $tokens, true );
+		foreach ( explode( ',', $csp ) as $policy ) {
+			foreach ( explode( ';', $policy ) as $directive ) {
+				$tokens = preg_split( '/\s+/', trim( strtolower( $directive ) ) );
+				if ( 'frame-ancestors' === $tokens[0] && ! in_array( '*', $tokens, true ) ) {
+					return true;
+				}
 			}
 		}
 		return false;

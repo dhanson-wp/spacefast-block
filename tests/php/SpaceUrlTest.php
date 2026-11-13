@@ -54,6 +54,12 @@ final class SpaceUrlTest extends TestCase {
 			'no dot'            => array( 'intranet' ),
 			'empty label'       => array( 'https://a..fast' ),
 			'numeric tld'       => array( 'https://127.1' ),
+			'hex octet'         => array( 'https://127.0.0.0x1' ),
+			'hex first octet'   => array( 'https://0x7f.0.0.0x1' ),
+			'hex integer tld'   => array( 'https://a.0x7f000001' ),
+			'localhost tld'     => array( 'https://foo.localhost' ),
+			'local tld'         => array( 'https://printer.local' ),
+			'internal tld'      => array( 'https://db.internal' ),
 		);
 	}
 
@@ -100,6 +106,22 @@ final class SpaceUrlTest extends TestCase {
 			'space'             => array( 'docs/in tro' ),
 			'bad percent'       => array( 'docs/%zz' ),
 			'empty segment'     => array( 'docs//intro' ),
+		);
+	}
+
+	/**
+	 * @dataProvider invalid_bases
+	 */
+	public function test_frame_url_fails_closed_for_invalid_base( $base ) {
+		$this->assertSame( '', Space_Url::frame_url( $base, 'docs' ) );
+		$this->assertSame( '', Space_Url::frame_url( $base, '' ) );
+	}
+
+	public function invalid_bases() {
+		return array(
+			'http loopback' => array( 'http://127.0.0.1/' ),
+			'javascript'    => array( 'javascript:alert(1)' ),
+			'empty'         => array( '' ),
 		);
 	}
 

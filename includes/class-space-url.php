@@ -72,12 +72,12 @@ class Space_Url {
 	 *
 	 * @param string $url        Space URL; normally the output of normalize().
 	 * @param string $start_path Relative start path.
-	 * @return string Frame URL.
+	 * @return string Frame URL, or an empty string when the Space URL itself isn't valid.
 	 */
 	public static function frame_url( string $url, string $start_path ): string {
 		$base = self::normalize( $url );
 		if ( null === $base ) {
-			return $url;
+			return '';
 		}
 
 		if ( '' === $start_path || preg_match( '/[\x00-\x20\x7f\\\\@]/', $start_path ) ) {
@@ -145,9 +145,23 @@ class Space_Url {
 		if ( ! preg_match( '/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $host ) ) {
 			return false;
 		}
-		// A purely numeric last label means an IPv4 form such as 127.0.0.1 or 127.1.
+		// A real TLD contains a letter and isn't a hex number (0x7f000001), which
+		// resolvers read as an IPv4 address. Loopback and local-network TLDs are out too.
 		$labels = explode( '.', $host );
-		return ! ctype_digit( end( $labels ) );
+		$tld    = end( $labels );
+		if ( ! preg_match( '/[a-z]/', $tld ) || preg_match( '/^0x[0-9a-f]*$/', $tld ) ) {
+			return false;
+		}
+		if ( in_array( $tld, array( 'localhost', 'local', 'internal' ), true ) ) {
+			return false;
+		}
+		// Hex or numeric labels anywhere (127.0.0.0x1) are IPv4 spellings.
+		foreach ( $labels as $label ) {
+			if ( preg_match( '/^0x[0-9a-f]*$/', $label ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
