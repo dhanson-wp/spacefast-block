@@ -29,7 +29,7 @@ Paste the address of any public Space, or connect your Spacefast account in the 
 
 **Private Spaces**
 
-A private Space can't be shown in a frame, so the block shows it as a card or a link, with a "Private" badge and a "Request access" link. Pasting a private Space's address works without connecting your account. Visitors sign in at Spacefast to see it. The badge text and the call to action are editable, and you can hide the badge.
+A private Space can't be shown in a frame, so the block shows it as a card or a link, with a "Private" badge and a "Request access" link. Pasting a private Space's address works without connecting your account; connect it, and the card also gets the Space's title when your account can reach that Space. Visitors sign in at Spacefast to see it. The badge text and the call to action are editable, and you can hide the badge.
 
 **Branding**
 
@@ -49,7 +49,7 @@ For inline and full page display, yes. A public Space can be shown in a frame. A
 
 = What happens to private Spaces? =
 
-The block shows them as a card or a link with a "Private" badge. Visitors who follow the link sign in at Spacefast, and can request access if they don't have it. A pasted private address works without connecting your account. If you choose the Space from your account's search instead, you can also upload its thumbnail to the media library and show it on the card.
+The block shows them as a card or a link with a "Private" badge. Visitors who follow the link sign in at Spacefast, and can request access if they don't have it. A pasted private address works without connecting your account. With your account connected, the card also gets the Space's title, whether you paste the address or choose the Space from search. A private Space has no preview image the block can load on its own, so choose one from the media library to show on the card.
 
 = Is my Spacefast key shared with visitors or other site users? =
 
@@ -77,7 +77,7 @@ This plugin connects to Spacefast, and to whatever host a Space names for its pr
 
 **Spacefast API (api.spacefast.com)**
 
-Used only in the editor, by signed-in users who can edit posts. It's contacted when an author connects their account, searches their Spaces, or asks the site to save the thumbnail of a private Space to the media library. The data sent is the author's Spacefast API key (as an authorization header, to api.spacefast.com only) and the search text or Space ID the author entered. For a private Space's thumbnail, api.spacefast.com may redirect the request to another host to get the image. The key is never sent to that other host. Visitors never trigger these requests. The requests identify themselves with a `spacefast-block/<version>` user agent.
+Used only in the editor, by signed-in users who can edit posts. It's contacted when an author connects their account, searches their Spaces, pastes or refreshes the address of a private Space while connected, or asks the site to save the thumbnail of a private Space to the media library. The data sent is the author's Spacefast API key (as an authorization header, to api.spacefast.com only) and the search text, Space address, or Space ID the author entered. For a private Space's thumbnail, api.spacefast.com may redirect the request to another host to get the image. The key is never sent to that other host. Visitors never trigger these requests. The requests identify themselves with a `spacefast-block/<version>` user agent.
 
 * Terms of service: https://automattic.com/tos/
 * Privacy policy: https://automattic.com/privacy/
@@ -96,7 +96,7 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 
 * A card shows the preview image the Space publishes. The visitor's browser loads it from that address, which can be the Space's own domain, s0.wp.com, or any other host the Space chose.
 * When a Space has no preview image of its own, Spacefast publishes an automatic screenshot address on s0.wp.com (mShots, run by Automattic). In that case the visitor's browser requests the image from s0.wp.com, and the request includes the Space's address. Privacy policy: https://automattic.com/privacy/
-* If the author saves the image to the media library, WordPress serves it from your own site, and when visitors view it, no outside host is contacted. To save a preview image from an address, your server downloads it from that address, sending no site or user details; for a private Space, the thumbnail comes from api.spacefast.com as described above.
+* If the author saves the image to the media library, WordPress serves it from your own site, and when visitors view it, no outside host is contacted. To save a preview image from an address, your server downloads it from that address, sending no site or user details; for a private Space, the plugin asks api.spacefast.com for the thumbnail as described above. Spacefast doesn't currently provide it to accounts connected through this plugin, so the editor says so and you choose an image from the media library instead.
 
 == Changelog ==
 
