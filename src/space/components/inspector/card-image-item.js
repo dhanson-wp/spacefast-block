@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import {
 	BaseControl,
@@ -32,11 +32,13 @@ export default function CardImageItem( {
 	onResetImage,
 	isRefreshing,
 } ) {
-	const { imageId, isPrivate } = attributes;
+	const { imageId, isPrivate, url, spaceId } = attributes;
 	const [ isUploading, setIsUploading ] = useState( false );
 	// Shown under the buttons until the next try, so a refusal is not missed.
 	const [ uploadError, setUploadError ] = useState( '' );
 	const { createSuccessNotice } = useDispatch( noticesStore );
+	// A message about one Space must not stay once the block shows another.
+	useEffect( () => setUploadError( '' ), [ url, spaceId ] );
 	const postId = useSelect(
 		( select ) => select( 'core/editor' )?.getCurrentPostId?.() || 0,
 		[]

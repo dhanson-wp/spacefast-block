@@ -270,6 +270,37 @@ final class SpaceMetadataTest extends TestCase {
 		$this->assertNotNull( Space_Metadata::account_details( $space, 'portal.example.com' ) );
 	}
 
+	public function test_account_details_ignores_a_trailing_dot_on_either_side() {
+		$this->assertNotNull( Space_Metadata::account_details( $this->account_space(), 'a.space.fast.' ) );
+		$this->assertNotNull(
+			Space_Metadata::account_details( $this->account_space( array( 'defaultHostname' => 'a.space.fast.' ) ), 'a.space.fast' )
+		);
+	}
+
+	public function test_account_details_matches_a_live_url_host_that_has_a_port() {
+		$space = $this->account_space(
+			array(
+				'defaultHostname' => 'b.space.fast',
+				'liveUrl'         => 'https://portal.example.com:8443/',
+			)
+		);
+
+		$this->assertNotNull( Space_Metadata::account_details( $space, 'portal.example.com' ) );
+		$this->assertNull( Space_Metadata::account_details( $space, 'portal.example.com:8443' ) );
+	}
+
+	public function test_account_details_matches_a_default_hostname_that_differs_only_in_case() {
+		$space = $this->account_space(
+			array(
+				'defaultHostname' => 'A.Space.Fast',
+				'liveUrl'         => '',
+			)
+		);
+
+		$this->assertNotNull( Space_Metadata::account_details( $space, 'a.space.fast' ) );
+		$this->assertNotNull( Space_Metadata::account_details( $space, 'A.SPACE.FAST' ) );
+	}
+
 	/**
 	 * @dataProvider unusable_account_spaces
 	 */
