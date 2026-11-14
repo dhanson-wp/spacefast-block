@@ -477,10 +477,12 @@ function spacefast_block_render( array $attributes ): string {
 	// the relay serves only Spaces the site shows. A start path with a query
 	// isn't relayed (relay_url() returns ''), so it frames the Space directly.
 	// A takeover's host may always be framed, which is the only time a signed
-	// URL is printed.
+	// URL is printed. A preview by someone who can't publish frames the Space
+	// directly, so a draft can't be used to get a signature for any host.
 	$signature = '';
 	$relay     = '';
-	if ( $is_takeover && ( $attributes['fitContent'] ?? true ) && $host_may_be_framed ) {
+	$may_sign  = ! ( is_preview() && ! current_user_can( 'publish_posts' ) );
+	if ( $is_takeover && ( $attributes['fitContent'] ?? true ) && $host_may_be_framed && $may_sign ) {
 		$signature = Relay_Controller::signature( Space_Url::hostname( $href ) );
 		$relay     = Space_Relay::relay_url( Relay_Controller::relay_base(), 'page', $href, $signature );
 	}
