@@ -435,6 +435,65 @@ final class SpaceRelayTest extends TestCase {
 		$this->assertNull( Space_Relay::budget_take( null, 5, 0, 60 ) );
 	}
 
+	public function test_budget_defaults_per_kind() {
+		$this->assertSame( 120, Space_Relay::budget_limit( 'page', 120 ) );
+		$this->assertSame( 1200, Space_Relay::budget_limit( 'asset', 1200 ) );
+		$this->assertSame( 120, Space_Relay::BUDGETS['page'] );
+		$this->assertSame( 1200, Space_Relay::BUDGETS['asset'] );
+	}
+
+	/**
+	 * @dataProvider filtered_limits
+	 */
+	public function test_budget_limit_falls_back_to_the_default( $kind, $filtered, $expected ) {
+		$this->assertSame( $expected, Space_Relay::budget_limit( $kind, $filtered ) );
+	}
+
+	public function filtered_limits() {
+		return array(
+			'page lowered'       => array( 'page', 2, 2 ),
+			'asset raised'       => array( 'asset', '5000', 5000 ),
+			'zero'               => array( 'page', 0, 120 ),
+			'negative'           => array( 'asset', -3, 1200 ),
+			'not numeric'        => array( 'page', 'lots', 120 ),
+			'null'               => array( 'asset', null, 1200 ),
+			'array'              => array( 'page', array( 5 ), 120 ),
+			'float rounds down'  => array( 'page', 7.9, 7 ),
+			'unknown kind'       => array( 'image', 5, 0 ),
+		);
+	}
+
+	public function test_budget_kinds_do_not_share_a_counter() {
+		$states = null;
+		for ( $i = 0; $i < 2; $i++ ) {
+			$states = Space_Relay::budget_take_kind( $states, 'page', 1000, 2, 60 );
+			$this->assertIsArray( $states );
+		}
+		// Pages are spent; assets are untouched.
+		$this->assertNull( Space_Relay::budget_take_kind( $states, 'page', 1001, 2, 60 ) );
+		$after_asset = Space_Relay::budget_take_kind( $states, 'asset', 1001, 2, 60 );
+		$this->assertIsArray( $after_asset );
+		$this->assertSame( array( 'start' => 1000, 'count' => 2 ), $after_asset['page'] );
+		$this->assertSame( array( 'start' => 1001, 'count' => 1 ), $after_asset['asset'] );
+	}
+
+	public function test_spending_assets_leaves_pages_alone() {
+		$states = array( 'asset' => array( 'start' => 1000, 'count' => 5 ) );
+		$this->assertNull( Space_Relay::budget_take_kind( $states, 'asset', 1010, 5, 60 ) );
+		$this->assertSame(
+			array(
+				'asset' => array( 'start' => 1000, 'count' => 5 ),
+				'page'  => array( 'start' => 1010, 'count' => 1 ),
+			),
+			Space_Relay::budget_take_kind( $states, 'page', 1010, 5, 60 )
+		);
+	}
+
+	public function test_budget_take_kind_refuses_an_unknown_kind_and_bad_state() {
+		$this->assertNull( Space_Relay::budget_take_kind( null, 'image', 1000, 5, 60 ) );
+		$this->assertSame( array( 'page' => array( 'start' => 9, 'count' => 1 ) ), Space_Relay::budget_take_kind( 'junk', 'page', 9, 5, 60 ) );
+	}
+
 	// Output.
 
 	public function test_emit_sends_status_headers_and_body() {

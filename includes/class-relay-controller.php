@@ -52,15 +52,11 @@ class Relay_Controller {
 	const INDEX_KEY = 'spacefast_block_relay_index';
 
 	/**
-	 * Transient counting upstream fetches in the current minute.
+	 * Transient counting upstream page and asset fetches, each in its own
+	 * one-minute window. The limits are Space_Relay::BUDGETS, filterable with
+	 * `spacefast_block_relay_budget`.
 	 */
 	const BUDGET_KEY = 'spacefast_block_relay_budget';
-
-	/**
-	 * Upstream fetches allowed per minute, across the whole site. Filterable
-	 * with `spacefast_block_relay_fetch_limit`.
-	 */
-	const FETCH_LIMIT = 120;
 
 	/**
 	 * The response the current request serves, set by a route callback and
@@ -144,12 +140,12 @@ class Relay_Controller {
 		}
 
 		$upstream = $target['url'];
-		$fetched  = self::fetch( $upstream, Space_Relay::PAGE_MAX_BYTES );
+		$fetched  = self::fetch( $upstream, Space_Relay::PAGE_MAX_BYTES, 'page' );
 		if ( is_array( $fetched ) && '' !== $fetched['redirect'] ) {
 			// Only one redirect, to the same path with a trailing slash.
 			$next     = Space_Relay::page_redirect_target( $upstream, $fetched['redirect'] );
 			$upstream = (string) $next;
-			$fetched  = null === $next ? 502 : self::fetch( $upstream, Space_Relay::PAGE_MAX_BYTES );
+			$fetched  = null === $next ? 502 : self::fetch( $upstream, Space_Relay::PAGE_MAX_BYTES, 'page' );
 		}
 		if ( is_array( $fetched ) && '' !== $fetched['redirect'] ) {
 			$fetched = 502;
@@ -206,7 +202,7 @@ class Relay_Controller {
 			return self::asset_error( (int) $cached['status'] );
 		}
 
-		$fetched = self::fetch( $target['url'], Space_Relay::ASSET_MAX_BYTES );
+		$fetched = self::fetch( $target['url'], Space_Relay::ASSET_MAX_BYTES, 'asset' );
 		if ( is_array( $fetched ) && '' !== $fetched['redirect'] ) {
 			$fetched = 502;
 		}
@@ -304,21 +300,35 @@ class Relay_Controller {
 	/**
 	 * Fetches an upstream URL with no cookies, credentials, or visitor headers,
 	 * following no redirects, uncompressed so the size cap counts real bytes.
-	 * Each fetch spends the site-wide budget; past it, nothing is fetched.
+	 * Each fetch spends the site-wide budget for its kind; past it, nothing is
+	 * fetched. Pages and assets have separate budgets.
 	 *
-	 * @param string $url URL from Space_Relay.
-	 * @param int    $max Largest body allowed, in bytes.
+	 * @param string $url  URL from Space_Relay.
+	 * @param int    $max  Largest body allowed, in bytes.
+	 * @param string $kind `page` or `asset`.
 	 * @return array{type: string, body: string, redirect: string}|int The
 	 *         response, 429 over budget, or 502 when it failed, wasn't 200 or a
 	 *         redirect, or was too large.
 	 */
-	private static function fetch( string $url, int $max ) {
-		$limit  = (int) apply_filters( 'spacefast_block_relay_fetch_limit', self::FETCH_LIMIT );
-		$budget = Space_Relay::budget_take( get_transient( self::BUDGET_KEY ), time(), $limit, MINUTE_IN_SECONDS );
-		if ( null === $budget ) {
+	private static function fetch( string $url, int $max, string $kind ) {
+		/**
+		 * Filters how many upstream fetches the relay may make per minute.
+		 *
+		 * @param int    $limit Default: 120 for pages, 1200 for assets.
+		 * @param string $kind  `page` or `asset`.
+		 */
+		$filtered = apply_filters( 'spacefast_block_relay_budget', Space_Relay::BUDGETS[ $kind ], $kind );
+		$budgets  = Space_Relay::budget_take_kind(
+			get_transient( self::BUDGET_KEY ),
+			$kind,
+			time(),
+			Space_Relay::budget_limit( $kind, $filtered ),
+			MINUTE_IN_SECONDS
+		);
+		if ( null === $budgets ) {
 			return 429;
 		}
-		set_transient( self::BUDGET_KEY, $budget, MINUTE_IN_SECONDS );
+		set_transient( self::BUDGET_KEY, $budgets, 2 * MINUTE_IN_SECONDS );
 
 		$response = wp_safe_remote_get(
 			$url,

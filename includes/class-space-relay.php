@@ -470,6 +470,55 @@ class Space_Relay {
 	}
 
 	/**
+	 * Upstream fetches allowed per minute, by kind. Pages and assets have
+	 * separate budgets, because every new visitor's stylesheets, fonts, and
+	 * module scripts are fetched (they aren't cached on the server).
+	 */
+	const BUDGETS = array(
+		'page'  => 120,
+		'asset' => 1200,
+	);
+
+	/**
+	 * The fetch limit for a kind: a filtered value when it is a positive
+	 * number, else the default. 0 for an unknown kind.
+	 *
+	 * @param string $kind     `page` or `asset`.
+	 * @param mixed  $filtered The `spacefast_block_relay_budget` filter's result.
+	 * @return int
+	 */
+	public static function budget_limit( string $kind, $filtered ): int {
+		if ( ! isset( self::BUDGETS[ $kind ] ) ) {
+			return 0;
+		}
+		return is_numeric( $filtered ) && (int) $filtered > 0 ? (int) $filtered : self::BUDGETS[ $kind ];
+	}
+
+	/**
+	 * The budgets with one fetch of a kind taken, or null when that kind's
+	 * budget is spent. Each kind has its own counter and window.
+	 *
+	 * @param mixed  $states Stored budgets, kind => state for budget_take().
+	 * @param string $kind   `page` or `asset`.
+	 * @param int    $now    Current time.
+	 * @param int    $limit  Fetches of this kind allowed per window.
+	 * @param int    $window Window length in seconds.
+	 * @return array<string, array{start: int, count: int}>|null
+	 */
+	public static function budget_take_kind( $states, string $kind, int $now, int $limit, int $window ): ?array {
+		if ( ! isset( self::BUDGETS[ $kind ] ) ) {
+			return null;
+		}
+		$states = is_array( $states ) ? array_intersect_key( $states, self::BUDGETS ) : array();
+		$taken  = self::budget_take( $states[ $kind ] ?? null, $now, $limit, $window );
+		if ( null === $taken ) {
+			return null;
+		}
+		$states[ $kind ] = $taken;
+		return $states;
+	}
+
+	/**
 	 * Sends a relay response: the status, each header, then the body. If
 	 * anything was already sent, the headers that keep the body safe (the CSP
 	 * sandbox, nosniff, the type) can't be, so nothing is sent at all.
