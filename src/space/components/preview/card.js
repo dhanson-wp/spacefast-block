@@ -1,21 +1,24 @@
 import { useSelect } from '@wordpress/data';
 
 import Branding from '../branding';
+import ExternalIcon from '../external-icon';
 import PrivateBadge from '../private-badge';
 import {
 	getCardImageUrl,
 	getCardTitle,
 	getPrivateCta,
+	hasModalTrigger,
 } from '../../utils/display';
 import { frameUrl } from '../../utils/url';
 
 /**
  * The card mode, as it appears on the front end, with clicks turned off.
  *
- * @param {Object} props            Component props.
- * @param {Object} props.attributes Block attributes.
+ * @param {Object}  props                Component props.
+ * @param {Object}  props.attributes     Block attributes.
+ * @param {boolean} props.isHostVerified Whether the Space's host may be framed.
  */
-export default function CardPreview( { attributes } ) {
+export default function CardPreview( { attributes, isHostVerified } ) {
 	// The block stores only a library image's ID; look its URL up.
 	const mediaUrl = useSelect(
 		( select ) =>
@@ -55,6 +58,9 @@ export default function CardPreview( { attributes } ) {
 				) }
 				<span className="wp-block-spacefast-space__title">
 					{ getCardTitle( attributes ) }
+					{ ! hasModalTrigger( attributes, isHostVerified ) && (
+						<ExternalIcon />
+					) }
 				</span>
 				{ showDescription && description && (
 					<span className="wp-block-spacefast-space__description">

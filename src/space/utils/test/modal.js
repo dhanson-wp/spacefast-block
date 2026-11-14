@@ -47,6 +47,34 @@ describe( 'shouldOpenModal', () => {
 	} );
 } );
 
+describe( 'shouldOpenModal for a button', () => {
+	// A button has no link to fall back to, so a modified click still opens it.
+	const plain = {
+		button: 0,
+		metaKey: false,
+		ctrlKey: false,
+		shiftKey: false,
+		altKey: false,
+	};
+
+	it( 'opens on a plain click and on a modified click', () => {
+		expect( shouldOpenModal( plain, true, false ) ).toBe( true );
+		expect(
+			shouldOpenModal( { ...plain, ctrlKey: true }, true, false )
+		).toBe( true );
+		expect(
+			shouldOpenModal( { ...plain, shiftKey: true }, true, false )
+		).toBe( true );
+	} );
+
+	it( 'does nothing when dialogs are not supported or the click was handled', () => {
+		expect( shouldOpenModal( plain, false, false ) ).toBe( false );
+		expect(
+			shouldOpenModal( { ...plain, defaultPrevented: true }, true, false )
+		).toBe( false );
+	} );
+} );
+
 describe( 'supportsModal', () => {
 	it( 'is false without HTMLDialogElement', () => {
 		expect( supportsModal( {} ) ).toBe( false );

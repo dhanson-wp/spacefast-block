@@ -2,7 +2,7 @@ import InlinePreview from './preview/inline';
 import FullPagePreview from './preview/full-page';
 import CardPreview from './preview/card';
 import LinkPreview from './preview/link';
-import { getEffectiveDisplay } from '../utils/display';
+import { getPreviewDisplay } from '../utils/display';
 
 const PREVIEWS = {
 	inline: InlinePreview,
@@ -20,11 +20,17 @@ const PREVIEWS = {
  * @param {boolean}                      props.isSelected      Whether the block is selected.
  * @param {(isEnabled: boolean) => void} props.toggleSelection Turns block selection on or off.
  * @param {boolean}                      props.isHostVerified  Whether the Space's host may be framed.
+ * @param {boolean}                      props.isOnlyBlock     Whether this is the only block on the page; a full page block that isn't previews as inline.
  * @param {Object}                       props.supportProps    Color and font size classes and styles, for the link mode's button.
  */
-export default function SpacePreview( { isHostVerified, ...props } ) {
+export default function SpacePreview( {
+	isHostVerified,
+	isOnlyBlock,
+	...props
+} ) {
 	const Preview =
-		PREVIEWS[ getEffectiveDisplay( props.attributes, isHostVerified ) ] ||
-		InlinePreview;
-	return <Preview { ...props } />;
+		PREVIEWS[
+			getPreviewDisplay( props.attributes, isHostVerified, isOnlyBlock )
+		] || InlinePreview;
+	return <Preview { ...props } isHostVerified={ isHostVerified } />;
 }

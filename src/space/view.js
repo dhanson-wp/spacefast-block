@@ -76,14 +76,16 @@ if (
 store( 'spacefast/space', {
 	actions: {
 		/**
-		 * Open the modal from the card or link. Modified clicks and browsers
-		 * without <dialog> fall through to the link's normal navigation.
+		 * Open the modal from the card or link, or the inline "Enlarge" button.
+		 * Modified clicks and browsers without <dialog> fall through to a
+		 * link's normal navigation; a button has none, so it opens on any click.
 		 */
 		open: withSyncEvent( ( event ) => {
-			if ( ! shouldOpenModal( event, supportsModal( window ) ) ) {
+			const { ref } = getElement();
+			const isLink = ref.tagName === 'A';
+			if ( ! shouldOpenModal( event, supportsModal( window ), isLink ) ) {
 				return;
 			}
-			const { ref } = getElement();
 			const dialog = getDialog( ref );
 			if ( ! dialog ) {
 				return;
@@ -146,6 +148,17 @@ store( 'spacefast/space', {
 			}
 
 			triggers.get( ref )?.focus();
+		},
+
+		/**
+		 * The inline "Enlarge" button is printed hidden. Show it once the
+		 * browser can open a dialog; without JavaScript, or without <dialog>,
+		 * it stays hidden rather than sit there doing nothing.
+		 */
+		initEnlarge() {
+			if ( supportsModal( window ) ) {
+				getElement().ref.hidden = false;
+			}
 		},
 
 		/**

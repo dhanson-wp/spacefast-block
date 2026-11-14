@@ -68,6 +68,77 @@ $spacefast-muted-border: color-mix(in srgb, currentcolor 15%, transparent);
 	}
 }
 
+// The icon after a link that leaves the site for the Space. It is as big as the
+// text and takes its color.
+.wp-block-spacefast-space__external-icon {
+	display: inline-block;
+	flex: none;
+	width: 1em;
+	height: 1em;
+	margin-inline-start: 0.25em;
+	vertical-align: -0.125em;
+	fill: none;
+}
+
+// The inline "Enlarge" button, after the Image block's "Enlarge on click". It
+// sits in a zero-height row after the title bar and before the frame, so it
+// lies over the top-right corner of the Space and never over the title bar.
+:where(.wp-block-spacefast-space__enlarge-row) {
+	position: relative;
+	z-index: 1;
+	flex: none;
+	height: 0;
+}
+
+.wp-block-spacefast-space__enlarge {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: rgb(0 0 0 / 60%);
+	color: #fff;
+	cursor: zoom-in;
+	opacity: 0;
+}
+
+// The browser's own `hidden` loses to `display: flex` above.
+.wp-block-spacefast-space__enlarge[hidden] {
+	display: none;
+}
+
+// Shown over the Space, and always on a touch screen, which has no hover.
+.wp-block-spacefast-space:hover .wp-block-spacefast-space__enlarge,
+.wp-block-spacefast-space__enlarge:focus-visible {
+	opacity: 1;
+}
+
+.wp-block-spacefast-space__enlarge:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px rgb(0 0 0 / 80%);
+}
+
+@media (hover: none) {
+
+	.wp-block-spacefast-space__enlarge {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+	.wp-block-spacefast-space__enlarge {
+		transition: opacity 0.2s ease;
+	}
+}
+
 // Private badge: a lock and a label.
 :where(.wp-block-spacefast-space__badge) {
 	display: inline-flex;

@@ -10,9 +10,11 @@ import {
 
 import {
 	canFrame,
+	getDefaultDisplay,
 	getDisplayNotice,
 	getEffectiveDisplay,
-	isDisplayAvailable,
+	getFullPageNotice,
+	isDisplayChoosable,
 } from '../../utils/display';
 import useToolsPanelDropdownMenuProps from '../../utils/use-tools-panel-dropdown-menu-props';
 import modeIcons from '../../mode-icons';
@@ -26,20 +28,24 @@ import modeIcons from '../../mode-icons';
  * @param {(next: Object) => void} props.setAttributes  Updates block attributes.
  * @param {string}                 props.clientId       Block client ID, used as the tools panel ID.
  * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
+ * @param {boolean}                props.isOnlyBlock    Whether this is the only block on the page.
  */
 export default function DisplayPanel( {
 	attributes,
 	setAttributes,
 	clientId,
 	isHostVerified,
+	isOnlyBlock,
 } ) {
 	const dropdownMenuProps = useToolsPanelDropdownMenuProps();
 	const isFrameable = canFrame( attributes, isHostVerified );
 	const display = getEffectiveDisplay( attributes, isHostVerified );
-	// A Space that can't be framed falls back to a card, so that is its default.
-	const defaultDisplay = isFrameable ? 'inline' : 'card';
+	// A private Space falls back to a card, so that is its default. This must
+	// not follow the host check, or a reset made before it answers would stick.
+	const defaultDisplay = getDefaultDisplay( attributes );
 	const reset = () => setAttributes( { display: defaultDisplay } );
 	const notice = getDisplayNotice( attributes, isHostVerified );
+	const fullPageNotice = getFullPageNotice( isOnlyBlock );
 
 	const options = [
 		{ value: 'inline', label: __( 'Inline', 'spacefast-block' ) },
@@ -80,9 +86,10 @@ export default function DisplayPanel( {
 								icon={ modeIcons[ option.value ] }
 								label={ option.label }
 								disabled={
-									! isDisplayAvailable(
+									! isDisplayChoosable(
 										option.value,
-										isFrameable
+										isFrameable,
+										isOnlyBlock
 									)
 								}
 							/>
@@ -91,6 +98,11 @@ export default function DisplayPanel( {
 					{ notice && (
 						<Notice status="info" isDismissible={ false }>
 							{ notice }
+						</Notice>
+					) }
+					{ fullPageNotice && (
+						<Notice status="info" isDismissible={ false }>
+							{ fullPageNotice }
 						</Notice>
 					) }
 				</Flex>

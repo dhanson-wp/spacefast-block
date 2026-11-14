@@ -7,7 +7,7 @@ import {
 
 import Panel from './panel';
 import ToggleItem from './toggle-item';
-import { canFrame } from '../../utils/display';
+import { canFrame, getDefaultClickAction } from '../../utils/display';
 
 /**
  * The Click behavior panel for cards and links: open the Space in a modal or
@@ -27,8 +27,9 @@ export default function ClickPanel( {
 } ) {
 	const { clickAction } = attributes;
 	const isFrameable = canFrame( attributes, isHostVerified );
-	// A Space that can't be framed can't open in a modal either.
-	const defaultAction = isFrameable ? 'modal' : 'link';
+	// A private Space can't open in a modal either. The default follows only
+	// that, never the host check, so a reset can't write 'link' for good.
+	const defaultAction = getDefaultClickAction( attributes );
 	const itemProps = { attributes, setAttributes, clientId };
 
 	return (

@@ -69,6 +69,42 @@ function spacefast_block_private_badge_html( array $attributes ): string {
 }
 
 /**
+ * The `external` icon from @wordpress/icons: an arrow leaving a box. Shown after
+ * a link that takes the visitor out of the site to the Space. Sized to the text
+ * and drawn in the text color. The path data lives only here; the editor uses
+ * the icon package.
+ *
+ * @return string SVG markup.
+ */
+function spacefast_block_external_icon_html(): string {
+	$path = 'M9.5 6.25H6.5C5.80964 6.25 5.25 6.80964 5.25 7.5V17.5C5.25 18.1904 5.80964 18.75 6.5 18.75H16.5C17.1904 18.75 17.75 18.1904 17.75 17.5V14.5M11.5 12.5L18.75 5.25M12.5 5.25H18.75V11.5';
+
+	return '<svg class="wp-block-spacefast-space__external-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" style="fill:none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">'
+		. '<path d="' . esc_attr( $path ) . '"/></svg>';
+}
+
+/**
+ * The button over an inline Space that opens it in the modal, like the Image
+ * block's "Enlarge on click" button. It sits in a zero-height row after the
+ * title bar, so it never covers the title bar's link. It is printed hidden: the
+ * view script shows it once it can open a dialog, so without JavaScript it
+ * isn't there to do nothing.
+ *
+ * @return string HTML.
+ */
+function spacefast_block_enlarge_button_html(): string {
+	// The `fullscreen` icon from @wordpress/icons.
+	$path = 'M4.75 10V4.75H10M4.75 4.75L10 10M14 19.25H19.25V14M19.25 19.25L14 14';
+
+	return '<div class="wp-block-spacefast-space__enlarge-row">'
+		. '<button type="button" class="wp-block-spacefast-space__enlarge" hidden aria-haspopup="dialog"'
+		. ' aria-label="' . esc_attr__( 'Enlarge', 'spacefast-block' ) . '"'
+		. ' data-wp-init="callbacks.initEnlarge" data-wp-on--click="actions.open">'
+		. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="fill:none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">'
+		. '<path d="' . esc_attr( $path ) . '"/></svg></button></div>';
+}
+
+/**
  * The classes and styles for the block's color and font size supports. The
  * block skips their serialization on its wrapper, so the link mode can put
  * them on its button, as the core Button block does; every other mode puts
@@ -125,17 +161,15 @@ function spacefast_block_new_tab_text(): string {
 }
 
 /**
- * Whether the block opens its Space in a modal: the click action asks for one
- * and the Space can be framed. Only the card and link modes have a trigger.
+ * Whether the card or link opens its Space in a modal. See
+ * Space_Display::has_modal_trigger().
  *
  * @param array $attributes         Block attributes.
  * @param bool  $host_may_be_framed Whether the Space's host may be framed.
  * @return bool
  */
 function spacefast_block_has_modal( array $attributes, bool $host_may_be_framed ): bool {
-	return 'modal' === ( $attributes['clickAction'] ?? 'modal' )
-		&& Space_Display::can_frame( $attributes, $host_may_be_framed )
-		&& in_array( Space_Display::effective_display( $attributes, $host_may_be_framed ), array( 'card', 'link' ), true );
+	return Space_Display::has_modal_trigger( $attributes, $host_may_be_framed );
 }
 
 /**
@@ -220,7 +254,10 @@ function spacefast_block_card_html( array $attributes, string $href, string $ima
 	if ( $is_private && $show( 'showPrivateBadge' ) ) {
 		$html .= spacefast_block_private_badge_html( $attributes );
 	}
-	$html .= '<span class="wp-block-spacefast-space__title">' . esc_html( Space_Display::card_title( $attributes ) ) . '</span>';
+	$html .= '<span class="wp-block-spacefast-space__title">'
+		. esc_html( Space_Display::card_title( $attributes ) )
+		. ( $has_modal ? '' : spacefast_block_external_icon_html() )
+		. '</span>';
 	if ( $show( 'showDescription' ) && ! empty( $attributes['description'] ) ) {
 		$html .= '<span class="wp-block-spacefast-space__description">' . esc_html( $attributes['description'] ) . '</span>';
 	}
@@ -279,6 +316,7 @@ function spacefast_block_link_html( array $attributes, string $href, bool $has_m
 	$html .= '<div class="wp-block-button">'
 		. '<a class="' . esc_attr( $button ) . '"' . $style . spacefast_block_trigger_attributes( $attributes, $href, $has_modal ) . '>'
 		. esc_html( $label )
+		. ( $has_modal ? '' : spacefast_block_external_icon_html() )
 		. ( ! empty( $attributes['openInNewTab'] ) ? spacefast_block_new_tab_text() : '' )
 		. '</a></div>';
 
@@ -370,6 +408,7 @@ function spacefast_block_modal_html( array $attributes, string $href ): string {
 	if ( $attributes['modalExternalLink'] ?? true ) {
 		$html .= '<a class="wp-block-spacefast-space__modal-link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener">'
 			. esc_html__( 'Open in new tab', 'spacefast-block' )
+			. spacefast_block_external_icon_html()
 			. spacefast_block_new_tab_text()
 			. '</a>';
 	}
@@ -391,14 +430,16 @@ function spacefast_block_modal_html( array $attributes, string $href ): string {
 }
 
 /**
- * The inline mode: an optional title bar above the frame.
+ * The inline mode: an optional title bar above the frame, and the button that
+ * opens the modal over the frame when asked.
  *
- * @param array  $attributes Block attributes.
- * @param string $href       Link to the Space.
- * @param array  $frame_args Options for spacefast_block_frame_html().
+ * @param array  $attributes  Block attributes.
+ * @param string $href        Link to the Space.
+ * @param array  $frame_args  Options for spacefast_block_frame_html().
+ * @param bool   $has_enlarge Whether to print the "Enlarge" button.
  * @return string HTML.
  */
-function spacefast_block_inline_html( array $attributes, string $href, array $frame_args = array() ): string {
+function spacefast_block_inline_html( array $attributes, string $href, array $frame_args = array(), bool $has_enlarge = false ): string {
 	$html = '';
 	if ( ! empty( $attributes['showTitleBar'] ) ) {
 		$html .= '<div class="wp-block-spacefast-space__title-bar">'
@@ -408,8 +449,12 @@ function spacefast_block_inline_html( array $attributes, string $href, array $fr
 		}
 		$html .= '<a class="wp-block-spacefast-space__link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener">'
 			. esc_html__( 'Open in new tab', 'spacefast-block' )
+			. spacefast_block_external_icon_html()
 			. spacefast_block_new_tab_text()
 			. '</a></div>';
+	}
+	if ( $has_enlarge ) {
+		$html .= spacefast_block_enlarge_button_html();
 	}
 	return $html . spacefast_block_frame_html( $attributes, $frame_args );
 }
@@ -472,6 +517,7 @@ function spacefast_block_render( array $attributes ): string {
 	$display     = Space_Display::effective_display( $attributes, $host_may_be_framed );
 	$is_takeover = 'fullpage' === $display && Takeover::claim();
 	$has_modal   = spacefast_block_has_modal( $attributes, $host_may_be_framed );
+	$has_enlarge = Space_Display::has_enlarge_button( $attributes, $host_may_be_framed );
 	// A takeover shows the Space at its full length through the relay unless
 	// the block turns that off. The relay URL carries this host's signature, so
 	// the relay serves only Spaces the site shows. A start path with a query
@@ -500,10 +546,10 @@ function spacefast_block_render( array $attributes ): string {
 		$inner = spacefast_block_link_html( $attributes, $href, $has_modal );
 	} else {
 		// Inline, and every full-page block that doesn't take over the page.
-		$inner = spacefast_block_inline_html( $attributes, $href );
+		$inner = spacefast_block_inline_html( $attributes, $href, array(), $has_enlarge );
 	}
 
-	if ( $has_modal ) {
+	if ( $has_modal || $has_enlarge ) {
 		$inner .= spacefast_block_modal_html( $attributes, $href );
 	}
 
@@ -549,7 +595,7 @@ function spacefast_block_render( array $attributes ): string {
 				)
 			);
 		}
-	} elseif ( $has_modal ) {
+	} elseif ( $has_modal || $has_enlarge ) {
 		$interactive = ' data-wp-interactive="spacefast/space" '
 			. wp_interactivity_data_wp_context( array( 'frameUrl' => $href ) );
 	}

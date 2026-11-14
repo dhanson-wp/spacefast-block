@@ -38,6 +38,7 @@ function isStartPathIgnored( { url, startPath } ) {
  * @param {() => void}             props.onResetImage   Puts the Space's own card image back.
  * @param {boolean}                props.isRefreshing   Whether the Space's details are being fetched.
  * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
+ * @param {boolean}                props.isOnlyBlock    Whether this is the only block on the page.
  */
 export default function SpaceInspector( {
 	attributes,
@@ -46,6 +47,7 @@ export default function SpaceInspector( {
 	onResetImage,
 	isRefreshing,
 	isHostVerified,
+	isOnlyBlock,
 } ) {
 	const display = getEffectiveDisplay( attributes, isHostVerified );
 	const itemProps = { attributes, setAttributes, clientId };
@@ -56,17 +58,30 @@ export default function SpaceInspector( {
 				<DisplayPanel
 					{ ...itemProps }
 					isHostVerified={ isHostVerified }
+					isOnlyBlock={ isOnlyBlock }
 				/>
 				{ display === 'inline' && (
 					<Panel
 						label={ __( 'Inline', 'spacefast-block' ) }
-						resetKeys={ [ 'showTitleBar' ] }
+						resetKeys={ [ 'showTitleBar', 'expandInModal' ] }
 						setAttributes={ setAttributes }
 						clientId={ clientId }
 					>
 						<ToggleItem
 							attribute="showTitleBar"
 							label={ __( 'Show title bar', 'spacefast-block' ) }
+							{ ...itemProps }
+						/>
+						<ToggleItem
+							attribute="expandInModal"
+							label={ __(
+								'Enlarge on click button',
+								'spacefast-block'
+							) }
+							help={ __(
+								'Adds a button over the Space that opens it in a modal.',
+								'spacefast-block'
+							) }
 							{ ...itemProps }
 						/>
 					</Panel>

@@ -39,38 +39,36 @@ class Takeover {
 	}
 
 	/**
-	 * The first Spacefast block in a parsed block tree that is shown full page,
-	 * searching inner blocks depth first, in document order. A Space that can't
-	 * be framed, or whose host may not be framed, is shown as a card, and one
-	 * without a usable URL renders nothing, so neither takes over.
+	 * The Spacefast block that takes over the page: the only meaningful block in
+	 * the content, shown full page (see Space_Display::is_only_block()). Any
+	 * other block, including another Spacefast block or a wrapper around the
+	 * Space, leaves nothing to take over, so the block renders as inline does
+	 * and nothing on the page is hidden. A Space that can't be framed, or whose
+	 * host may not be framed, is shown as a card, and one without a usable URL
+	 * renders nothing, so neither takes over.
 	 *
-	 * Synced patterns (`core/block`) are not expanded; a full-page block inside
-	 * one doesn't take over.
+	 * Synced patterns (`core/block`) are not expanded; they count as another
+	 * block.
 	 *
 	 * @param array $blocks         Output of parse_blocks().
 	 * @param array $verified_hosts Hosts confirmed as Spaces, host => time confirmed.
 	 * @return array|null The block's attributes, or null.
 	 */
 	public static function find_fullpage_block( array $blocks, array $verified_hosts = array() ): ?array {
+		if ( ! Space_Display::is_only_block( $blocks ) ) {
+			return null;
+		}
 		foreach ( $blocks as $block ) {
-			if ( ! is_array( $block ) ) {
+			if ( ! is_array( $block ) || 'spacefast/space' !== ( $block['blockName'] ?? null ) ) {
 				continue;
 			}
 			$attrs = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
-			if ( 'spacefast/space' === ( $block['blockName'] ?? null ) ) {
-				$href = Space_Url::frame_url( (string) ( $attrs['url'] ?? '' ), (string) ( $attrs['startPath'] ?? '' ) );
-				if (
-					'' !== $href
-					&& 'fullpage' === Space_Display::effective_display( $attrs, Space_Url::may_frame_host( Space_Url::hostname( $href ), $verified_hosts ) )
-				) {
-					return $attrs;
-				}
-			}
-			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-				$found = self::find_fullpage_block( $block['innerBlocks'], $verified_hosts );
-				if ( null !== $found ) {
-					return $found;
-				}
+			$href  = Space_Url::frame_url( (string) ( $attrs['url'] ?? '' ), (string) ( $attrs['startPath'] ?? '' ) );
+			if (
+				'' !== $href
+				&& 'fullpage' === Space_Display::effective_display( $attrs, Space_Url::may_frame_host( Space_Url::hostname( $href ), $verified_hosts ) )
+			) {
+				return $attrs;
 			}
 		}
 		return null;

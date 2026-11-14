@@ -375,4 +375,141 @@ final class SpaceDisplayTest extends TestCase {
 			Space_Display::block_class_names( $this->class_attributes( array( 'display' => 'fullpage' ) ), false )
 		);
 	}
+
+	/**
+	 * A parsed block, shaped like parse_blocks() output.
+	 *
+	 * @param string|null $name       Block name; null for freeform HTML between blocks.
+	 * @param string      $inner_html The block's own HTML.
+	 * @param array       $inner      Inner blocks.
+	 * @return array
+	 */
+	private function parsed( $name, $inner_html = '', array $inner = array() ) {
+		return array(
+			'blockName'    => $name,
+			'attrs'        => array(),
+			'innerBlocks'  => $inner,
+			'innerHTML'    => $inner_html,
+			'innerContent' => array(),
+		);
+	}
+
+	// The cases below mirror "isOnlyBlock" in src/space/utils/test/display.js.
+
+	public function test_a_single_space_block_is_the_only_block() {
+		$this->assertTrue( Space_Display::is_only_block( array( $this->parsed( 'spacefast/space' ) ) ) );
+	}
+
+	public function test_a_space_next_to_a_paragraph_is_not_the_only_block() {
+		$this->assertFalse(
+			Space_Display::is_only_block(
+				array(
+					$this->parsed( 'core/paragraph', '<p>Hello</p>' ),
+					$this->parsed( 'spacefast/space' ),
+				)
+			)
+		);
+	}
+
+	public function test_empty_paragraphs_and_blank_freeform_content_do_not_count() {
+		$this->assertTrue(
+			Space_Display::is_only_block(
+				array(
+					$this->parsed( 'core/paragraph', '<p></p>' ),
+					$this->parsed( null, "\n\n" ),
+					$this->parsed( 'spacefast/space' ),
+					$this->parsed( 'core/paragraph', "<p> \n</p>" ),
+				)
+			)
+		);
+	}
+
+	public function test_freeform_content_with_text_counts() {
+		$this->assertFalse(
+			Space_Display::is_only_block( array( $this->parsed( null, 'Some text' ), $this->parsed( 'spacefast/space' ) ) )
+		);
+	}
+
+	public function test_two_space_blocks_are_not_the_only_block() {
+		$this->assertFalse(
+			Space_Display::is_only_block( array( $this->parsed( 'spacefast/space' ), $this->parsed( 'spacefast/space' ) ) )
+		);
+	}
+
+	public function test_a_space_inside_a_group_is_not_the_only_block() {
+		$this->assertFalse(
+			Space_Display::is_only_block(
+				array( $this->parsed( 'core/group', '', array( $this->parsed( 'spacefast/space' ) ) ) )
+			)
+		);
+	}
+
+	public function test_empty_content_has_no_only_block() {
+		$this->assertFalse( Space_Display::is_only_block( array() ) );
+		$this->assertFalse( Space_Display::is_only_block( array( $this->parsed( 'core/paragraph', '<p></p>' ) ) ) );
+	}
+
+	public function test_another_single_block_is_not_the_only_block() {
+		$this->assertFalse( Space_Display::is_only_block( array( $this->parsed( 'core/image' ) ) ) );
+	}
+
+	// The cases below mirror "hasEnlargeButton" in src/space/utils/test/display.js.
+
+	public function test_the_enlarge_button_needs_inline_display_the_setting_and_a_frameable_host() {
+		$on = array(
+			'display'        => 'inline',
+			'expandInModal'  => true,
+			'isFrameable'    => true,
+		);
+
+		$this->assertTrue( Space_Display::has_enlarge_button( $on, true ) );
+		$this->assertFalse( Space_Display::has_enlarge_button( array_merge( $on, array( 'expandInModal' => false ) ), true ) );
+		$this->assertFalse( Space_Display::has_enlarge_button( array( 'display' => 'inline' ), true ) );
+		$this->assertFalse( Space_Display::has_enlarge_button( $on, false ) );
+		$this->assertFalse( Space_Display::has_enlarge_button( array_merge( $on, array( 'isFrameable' => false ) ), true ) );
+		$this->assertFalse( Space_Display::has_enlarge_button( array_merge( $on, array( 'display' => 'fullpage' ) ), true ) );
+		$this->assertFalse( Space_Display::has_enlarge_button( array_merge( $on, array( 'display' => 'card' ) ), true ) );
+	}
+
+	// The cases below mirror "hasModalTrigger" in src/space/utils/test/display.js.
+
+	/**
+	 * @dataProvider modal_triggers
+	 */
+	public function test_has_modal_trigger( array $attributes, $host_may_be_framed, $expected ) {
+		$this->assertSame( $expected, Space_Display::has_modal_trigger( $attributes, $host_may_be_framed ) );
+	}
+
+	public function modal_triggers() {
+		return array(
+			'card, default click'         => array( array( 'display' => 'card' ), true, true ),
+			'link, modal click'           => array(
+				array(
+					'display'     => 'link',
+					'clickAction' => 'modal',
+				),
+				true,
+				true,
+			),
+			'card, go to the Space'       => array(
+				array(
+					'display'     => 'card',
+					'clickAction' => 'link',
+				),
+				true,
+				false,
+			),
+			'card, not frameable'         => array(
+				array(
+					'display'     => 'card',
+					'isFrameable' => false,
+				),
+				true,
+				false,
+			),
+			'card, host may not be framed' => array( array( 'display' => 'card' ), false, false ),
+			'inline'                      => array( array( 'display' => 'inline' ), true, false ),
+			'fullpage'                    => array( array( 'display' => 'fullpage' ), true, false ),
+		);
+	}
 }

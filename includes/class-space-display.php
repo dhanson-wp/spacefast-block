@@ -74,6 +74,71 @@ class Space_Display {
 	}
 
 	/**
+	 * Whether a click on the card or link opens the Space in a modal: the click
+	 * action asks for one and the Space may be framed. Only the card and link
+	 * modes have such a trigger; otherwise the click goes to the Space.
+	 *
+	 * @param array $attributes         Block attributes.
+	 * @param bool  $host_may_be_framed Whether the Space's host may be framed.
+	 * @return bool
+	 */
+	public static function has_modal_trigger( array $attributes, bool $host_may_be_framed ): bool {
+		return 'modal' === ( $attributes['clickAction'] ?? 'modal' )
+			&& self::can_frame( $attributes, $host_may_be_framed )
+			&& in_array( self::effective_display( $attributes, $host_may_be_framed ), array( 'card', 'link' ), true );
+	}
+
+	/**
+	 * Whether the block shows the "Enlarge" button over an inline Space: the
+	 * setting is on, the block is shown inline, and the Space may be framed (the
+	 * modal frames it). A full-page block, including one that renders inline
+	 * because it isn't the only block, has none.
+	 *
+	 * @param array $attributes         Block attributes.
+	 * @param bool  $host_may_be_framed Whether the Space's host may be framed.
+	 * @return bool
+	 */
+	public static function has_enlarge_button( array $attributes, bool $host_may_be_framed ): bool {
+		return ! empty( $attributes['expandInModal'] )
+			&& self::can_frame( $attributes, $host_may_be_framed )
+			&& 'inline' === self::effective_display( $attributes, $host_may_be_framed );
+	}
+
+	/**
+	 * Whether a Spacefast block is the only meaningful block in a post's content,
+	 * the one condition under which full page is usable. Empty paragraphs and
+	 * whitespace-only freeform content are ignored. Any other block, another
+	 * Spacefast block, or a wrapper such as a Group around the Space, means it is
+	 * not the only block. Mirrors `isOnlyBlock()` in src/space/utils/display.js.
+	 *
+	 * @param array $blocks Output of parse_blocks(), the top-level blocks.
+	 * @return bool
+	 */
+	public static function is_only_block( array $blocks ): bool {
+		$meaningful = array_values( array_filter( $blocks, array( __CLASS__, 'is_meaningful_block' ) ) );
+		return 1 === count( $meaningful ) && 'spacefast/space' === ( $meaningful[0]['blockName'] ?? null );
+	}
+
+	/**
+	 * Whether a parsed block counts when deciding if a block is the only one:
+	 * not an empty paragraph, and not freeform content that is only whitespace.
+	 *
+	 * @param mixed $block One item of parse_blocks() output.
+	 * @return bool
+	 */
+	private static function is_meaningful_block( $block ): bool {
+		if ( ! is_array( $block ) ) {
+			return false;
+		}
+		$name = $block['blockName'] ?? null;
+		if ( null === $name || 'core/paragraph' === $name ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- This class must not call WordPress functions.
+			return '' !== trim( strip_tags( (string) ( $block['innerHTML'] ?? '' ) ) );
+		}
+		return true;
+	}
+
+	/**
 	 * Whether the block has an explicit aspect ratio, which wins over any height.
 	 * An `auto` ratio is no ratio.
 	 *

@@ -1,10 +1,16 @@
 import { __ } from '@wordpress/i18n';
 import { useRef } from '@wordpress/element';
 import { ResizableBox } from '@wordpress/components';
+import { Icon, fullscreen } from '@wordpress/icons';
 
 import Branding from '../branding';
+import ExternalIcon from '../external-icon';
 import Frame from './frame';
-import { getCardTitle, hasAspectRatio } from '../../utils/display';
+import {
+	getCardTitle,
+	hasAspectRatio,
+	hasEnlargeButton,
+} from '../../utils/display';
 import { frameUrl } from '../../utils/url';
 
 // Only the bottom edge resizes, as on the Cover block.
@@ -31,12 +37,14 @@ const MIN_RESIZE_HEIGHT = 50;
  * @param {(next: Object) => void}       props.setAttributes   Updates block attributes.
  * @param {boolean}                      props.isSelected      Whether the block is selected.
  * @param {(isEnabled: boolean) => void} props.toggleSelection Turns block selection on or off while dragging.
+ * @param {boolean}                      props.isHostVerified  Whether the Space's host may be framed.
  */
 export default function InlinePreview( {
 	attributes,
 	setAttributes,
 	isSelected,
 	toggleSelection,
+	isHostVerified,
 } ) {
 	// The block's height when the drag started. The handle sits inside the
 	// block, so the new height is that plus how far the handle moved.
@@ -67,8 +75,22 @@ export default function InlinePreview( {
 							onClick={ ( event ) => event.preventDefault() }
 						>
 							{ __( 'Open in new tab', 'spacefast-block' ) }
+							<ExternalIcon />
 						</a>
 					) }
+				</div>
+			) }
+			{ hasEnlargeButton( attributes, isHostVerified ) && (
+				<div className="wp-block-spacefast-space__enlarge-row">
+					<button
+						type="button"
+						className="wp-block-spacefast-space__enlarge"
+						aria-haspopup="dialog"
+						aria-label={ __( 'Enlarge', 'spacefast-block' ) }
+						onClick={ ( event ) => event.preventDefault() }
+					>
+						<Icon icon={ fullscreen } size={ 20 } />
+					</button>
 				</div>
 			) }
 			<ResizableBox

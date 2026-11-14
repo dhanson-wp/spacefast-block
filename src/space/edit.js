@@ -18,10 +18,12 @@ import {
 	getBlockClassNames,
 	getDisplayNotice,
 	getEffectiveDisplay,
+	getFullPageWarning,
 	getMinHeight,
 } from './utils/display';
 import useColorAndFontSizeProps from './utils/use-color-and-font-size-props';
 import useHostVerified from './utils/use-host-verified';
+import useIsOnlyBlock from './utils/use-is-only-block';
 import { frameUrl } from './utils/url';
 
 export default function Edit( {
@@ -47,6 +49,13 @@ export default function Edit( {
 	);
 	const isCheckingHost = hasSpace && isHostVerified === undefined;
 	const canFrameHost = isHostVerified === true;
+	// Full page is only usable when this is the only block on the page.
+	const isOnlyBlock = useIsOnlyBlock( clientId );
+	const fullPageWarning = getFullPageWarning(
+		attributes,
+		canFrameHost,
+		isOnlyBlock
+	);
 	const minHeight =
 		showSpace && ! isCheckingHost
 			? getMinHeight( attributes, canFrameHost )
@@ -146,6 +155,7 @@ export default function Edit( {
 				onResetImage={ () => refreshDetails( { resetImage: true } ) }
 				isRefreshing={ isRefreshing }
 				isHostVerified={ canFrameHost }
+				isOnlyBlock={ isOnlyBlock }
 			/>
 			<div { ...blockProps }>
 				{ ! canFrameHost && (
@@ -167,12 +177,22 @@ export default function Edit( {
 						{ getDisplayNotice( attributes, false ) }
 					</Notice>
 				) }
+				{ fullPageWarning && (
+					<Notice
+						className="wp-block-spacefast-space__host-notice"
+						status="warning"
+						isDismissible={ false }
+					>
+						{ fullPageWarning }
+					</Notice>
+				) }
 				<SpacePreview
 					attributes={ attributes }
 					setAttributes={ setAttributes }
 					isSelected={ isSelected }
 					toggleSelection={ toggleSelection }
 					isHostVerified={ canFrameHost }
+					isOnlyBlock={ isOnlyBlock }
 					supportProps={ supportProps }
 				/>
 			</div>

@@ -6,6 +6,14 @@ import {
 	getCardImageUrl,
 	hasCardImage,
 	getCardTitle,
+	getDefaultClickAction,
+	getDefaultDisplay,
+	getFullPageWarning,
+	getPreviewDisplay,
+	hasEnlargeButton,
+	hasModalTrigger,
+	isDisplayChoosable,
+	isOnlyBlock,
 	getClearedSpaceAttributes,
 	getEffectiveDisplay,
 	getFullHeightToggleAttributes,
@@ -564,5 +572,217 @@ describe( 'a host that has not been confirmed', () => {
 		).toBe(
 			"This link hasn't been confirmed as a Spacefast Space. Refresh details to check it."
 		);
+	} );
+} );
+
+describe( 'isOnlyBlock', () => {
+	// Mirrors the "only block" cases in tests/php/SpaceDisplayTest.php.
+	const space = ( clientId = 'space' ) => ( {
+		clientId,
+		name: 'spacefast/space',
+		attributes: {},
+		innerBlocks: [],
+	} );
+	const paragraph = ( content ) => ( {
+		clientId: 'p',
+		name: 'core/paragraph',
+		attributes: { content },
+		innerBlocks: [],
+	} );
+
+	it( 'is true for a single Space block', () => {
+		expect( isOnlyBlock( [ space() ], 'space' ) ).toBe( true );
+	} );
+
+	it( 'is false for a Space next to a paragraph', () => {
+		expect(
+			isOnlyBlock( [ paragraph( 'Hello' ), space() ], 'space' )
+		).toBe( false );
+	} );
+
+	it( 'ignores empty paragraphs and blank freeform content', () => {
+		const blank = {
+			clientId: 'f',
+			name: 'core/freeform',
+			attributes: { content: '\n\n' },
+			innerBlocks: [],
+		};
+		expect(
+			isOnlyBlock(
+				[ paragraph( '' ), blank, space(), paragraph( ' \n' ) ],
+				'space'
+			)
+		).toBe( true );
+	} );
+
+	it( 'counts freeform content with text', () => {
+		const freeform = {
+			clientId: 'f',
+			name: 'core/freeform',
+			attributes: { content: 'Some text' },
+			innerBlocks: [],
+		};
+		expect( isOnlyBlock( [ freeform, space() ], 'space' ) ).toBe( false );
+	} );
+
+	it( 'is false for two Space blocks', () => {
+		expect( isOnlyBlock( [ space( 'a' ), space( 'b' ) ], 'a' ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'is false for a Space inside a Group', () => {
+		const group = {
+			clientId: 'g',
+			name: 'core/group',
+			attributes: {},
+			innerBlocks: [ space() ],
+		};
+		expect( isOnlyBlock( [ group ], 'space' ) ).toBe( false );
+	} );
+
+	it( 'is false for empty content, and for another single block', () => {
+		expect( isOnlyBlock( [], 'space' ) ).toBe( false );
+		expect( isOnlyBlock( [ paragraph( '' ) ], 'space' ) ).toBe( false );
+		expect(
+			isOnlyBlock(
+				[ { clientId: 'i', name: 'core/image', attributes: {} } ],
+				'space'
+			)
+		).toBe( false );
+	} );
+
+	it( 'is false when the only block is a different Space block', () => {
+		expect( isOnlyBlock( [ space( 'other' ) ], 'space' ) ).toBe( false );
+	} );
+} );
+
+describe( 'full page', () => {
+	it.each( [
+		[ 'fullpage', true, true, true ],
+		[ 'fullpage', true, false, false ],
+		[ 'fullpage', false, true, false ],
+		[ 'inline', true, false, true ],
+		[ 'card', false, false, true ],
+		[ 'link', false, false, true ],
+	] )(
+		'%s with isFrameable %p and only block %p can be chosen: %p',
+		( display, isFrameable, onlyBlock, expected ) => {
+			expect(
+				isDisplayChoosable( display, isFrameable, onlyBlock )
+			).toBe( expected );
+		}
+	);
+
+	it( 'previews as inline when other blocks are present', () => {
+		const attributes = { display: 'fullpage', isFrameable: true };
+		expect( getPreviewDisplay( attributes, true, true ) ).toBe(
+			'fullpage'
+		);
+		expect( getPreviewDisplay( attributes, true, false ) ).toBe( 'inline' );
+	} );
+
+	it( 'keeps every other preview as it is', () => {
+		expect(
+			getPreviewDisplay(
+				{ display: 'card', isFrameable: true },
+				true,
+				false
+			)
+		).toBe( 'card' );
+		expect(
+			getPreviewDisplay(
+				{ display: 'fullpage', isFrameable: true },
+				false,
+				false
+			)
+		).toBe( 'card' );
+	} );
+
+	it( 'warns only for a full page block that is not the only block', () => {
+		const attributes = { display: 'fullpage', isFrameable: true };
+		expect( getFullPageWarning( attributes, true, false ) ).toBe(
+			"Full page only works when this is the only block on the page. It's showing inline until the other blocks are removed."
+		);
+		expect( getFullPageWarning( attributes, true, true ) ).toBe( '' );
+		expect(
+			getFullPageWarning(
+				{ display: 'inline', isFrameable: true },
+				true,
+				false
+			)
+		).toBe( '' );
+		expect( getFullPageWarning( attributes, false, false ) ).toBe( '' );
+	} );
+} );
+
+describe( 'hasEnlargeButton', () => {
+	// Mirrors tests/php/SpaceDisplayTest.php.
+	const on = { display: 'inline', expandInModal: true, isFrameable: true };
+
+	it( 'needs inline display, the setting, and a Space that may be framed', () => {
+		expect( hasEnlargeButton( on, true ) ).toBe( true );
+		expect(
+			hasEnlargeButton( { ...on, expandInModal: false }, true )
+		).toBe( false );
+		expect( hasEnlargeButton( { display: 'inline' }, true ) ).toBe( false );
+		expect( hasEnlargeButton( on, false ) ).toBe( false );
+		expect( hasEnlargeButton( { ...on, isFrameable: false }, true ) ).toBe(
+			false
+		);
+		expect( hasEnlargeButton( { ...on, display: 'fullpage' }, true ) ).toBe(
+			false
+		);
+		expect( hasEnlargeButton( { ...on, display: 'card' }, true ) ).toBe(
+			false
+		);
+	} );
+} );
+
+describe( 'reset defaults', () => {
+	it( 'depend only on whether the Space can be framed at all', () => {
+		expect( getDefaultDisplay( { isFrameable: true } ) ).toBe( 'inline' );
+		expect( getDefaultDisplay( { isFrameable: false } ) ).toBe( 'card' );
+		expect( getDefaultClickAction( { isFrameable: true } ) ).toBe(
+			'modal'
+		);
+		expect( getDefaultClickAction( { isFrameable: false } ) ).toBe(
+			'link'
+		);
+	} );
+} );
+
+describe( 'hasModalTrigger', () => {
+	// Mirrors tests/php/SpaceDisplayTest.php.
+	it.each( [
+		[ 'card, default click', { display: 'card' }, true, true ],
+		[
+			'link, modal click',
+			{ display: 'link', clickAction: 'modal' },
+			true,
+			true,
+		],
+		[
+			'card, go to the Space',
+			{ display: 'card', clickAction: 'link' },
+			true,
+			false,
+		],
+		[
+			'card, not frameable',
+			{ display: 'card', isFrameable: false },
+			true,
+			false,
+		],
+		[ 'card, host may not be framed', { display: 'card' }, false, false ],
+		[ 'inline', { display: 'inline' }, true, false ],
+		[ 'fullpage', { display: 'fullpage' }, true, false ],
+	] )( '%s', ( _name, attributes, isHostVerified, expected ) => {
+		expect(
+			hasModalTrigger(
+				{ isFrameable: true, clickAction: 'modal', ...attributes },
+				isHostVerified
+			)
+		).toBe( expected );
 	} );
 } );

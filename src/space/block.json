@@ -46,6 +46,7 @@
 		"showHostname": { "type": "boolean", "default": true },
 		"linkLabel": { "type": "string", "default": "" },
 		"openInNewTab": { "type": "boolean", "default": false },
+		"expandInModal": { "type": "boolean", "default": false },
 		"modalExternalLink": { "type": "boolean", "default": true },
 		"lazyLoad": { "type": "boolean", "default": true },
 		"allowFullscreen": { "type": "boolean", "default": true },

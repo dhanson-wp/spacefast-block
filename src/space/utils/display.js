@@ -49,6 +49,173 @@ export function getEffectiveDisplay( attributes, isHostVerified = true ) {
 }
 
 /**
+ * Whether a display mode can be chosen for this block: it is available for the
+ * Space, and full page also needs this to be the only block on the page.
+ *
+ * @param {string}  display     Display mode.
+ * @param {boolean} isFrameable Whether the Space can be framed.
+ * @param {boolean} onlyBlock   Whether this is the only block on the page.
+ * @return {boolean} True if the mode can be chosen.
+ */
+export function isDisplayChoosable( display, isFrameable, onlyBlock ) {
+	return (
+		isDisplayAvailable( display, isFrameable ) &&
+		( display !== 'fullpage' || onlyBlock )
+	);
+}
+
+/**
+ * The display mode the block is reset to, which depends only on the block's
+ * own `isFrameable` attribute: a private Space can only be a card or a link.
+ * Never on whether its host is confirmed yet, so a reset made before the
+ * check answers doesn't write a card for good.
+ *
+ * @param {Object}  attributes             Block attributes.
+ * @param {boolean} attributes.isFrameable Whether the Space can be framed.
+ * @return {string} Display mode.
+ */
+export function getDefaultDisplay( { isFrameable } ) {
+	return isFrameable ? 'inline' : 'card';
+}
+
+/**
+ * The click action the block is reset to; see getDefaultDisplay().
+ *
+ * @param {Object}  attributes             Block attributes.
+ * @param {boolean} attributes.isFrameable Whether the Space can be framed.
+ * @return {string} Click action.
+ */
+export function getDefaultClickAction( { isFrameable } ) {
+	return isFrameable ? 'modal' : 'link';
+}
+
+/**
+ * Whether a block counts when deciding if a Spacefast block is the only one:
+ * not an empty paragraph, and not freeform content that is only whitespace.
+ *
+ * @param {Object} block A block from the block editor store.
+ * @return {boolean} True if it counts.
+ */
+function isMeaningfulBlock( block ) {
+	if ( block.name === 'core/paragraph' || block.name === 'core/freeform' ) {
+		const text = `${ block.attributes?.content ?? '' }`
+			.replace( /<[^>]*>/g, '' )
+			.trim();
+		return text !== '';
+	}
+	return true;
+}
+
+/**
+ * Whether this Spacefast block is the only meaningful block in the post's
+ * content, the one condition under which full page is usable. Empty paragraphs
+ * and whitespace-only freeform content are ignored; any other block, another
+ * Spacefast block, or a wrapper such as a Group around this one is not. Mirrors
+ * `Space_Display::is_only_block()`.
+ *
+ * @param {Array<Object>} blocks   The top-level blocks of the content.
+ * @param {string}        clientId This block's client ID.
+ * @return {boolean} True if this is the only block.
+ */
+export function isOnlyBlock( blocks, clientId ) {
+	const meaningful = blocks.filter( isMeaningfulBlock );
+	return (
+		meaningful.length === 1 &&
+		meaningful[ 0 ].name === 'spacefast/space' &&
+		meaningful[ 0 ].clientId === clientId
+	);
+}
+
+/**
+ * The mode the editor previews. A full page block that isn't the only block
+ * shows inline, as it does on the front end.
+ *
+ * @param {Object}  attributes     Block attributes.
+ * @param {boolean} isHostVerified Whether the Space's host may be framed.
+ * @param {boolean} onlyBlock      Whether this is the only block on the page.
+ * @return {string} Display mode.
+ */
+export function getPreviewDisplay( attributes, isHostVerified, onlyBlock ) {
+	const display = getEffectiveDisplay( attributes, isHostVerified );
+	return display === 'fullpage' && ! onlyBlock ? 'inline' : display;
+}
+
+/**
+ * The warning for a block that is set to full page while other blocks are on
+ * the page, or '' when there is nothing to warn about.
+ *
+ * @param {Object}  attributes     Block attributes.
+ * @param {boolean} isHostVerified Whether the Space's host may be framed.
+ * @param {boolean} onlyBlock      Whether this is the only block on the page.
+ * @return {string} Warning text.
+ */
+export function getFullPageWarning( attributes, isHostVerified, onlyBlock ) {
+	if (
+		onlyBlock ||
+		getEffectiveDisplay( attributes, isHostVerified ) !== 'fullpage'
+	) {
+		return '';
+	}
+	return __(
+		"Full page only works when this is the only block on the page. It's showing inline until the other blocks are removed.",
+		'spacefast-block'
+	);
+}
+
+/**
+ * The note under the Display setting when full page can't be chosen because
+ * other blocks are on the page, or ''.
+ *
+ * @param {boolean} onlyBlock Whether this is the only block on the page.
+ * @return {string} Notice text.
+ */
+export function getFullPageNotice( onlyBlock ) {
+	return onlyBlock
+		? ''
+		: __(
+				'Full page needs this to be the only block on the page.',
+				'spacefast-block'
+			);
+}
+
+/**
+ * Whether a click on the card or link opens the Space in a modal: the click
+ * action asks for one and the Space may be framed. Otherwise the click goes to
+ * the Space. Mirrors `Space_Display::has_modal_trigger()`.
+ *
+ * @param {Object}  attributes             Block attributes.
+ * @param {string}  attributes.clickAction `modal` or `link`.
+ * @param {boolean} isHostVerified         Whether the Space's host may be framed.
+ * @return {boolean} True if the click opens a modal.
+ */
+export function hasModalTrigger( attributes, isHostVerified = true ) {
+	return (
+		attributes.clickAction === 'modal' &&
+		canFrame( attributes, isHostVerified ) &&
+		[ 'card', 'link' ].includes(
+			getEffectiveDisplay( attributes, isHostVerified )
+		)
+	);
+}
+
+/**
+ * Whether the block shows the "Enlarge" button over an inline Space. Mirrors
+ * `Space_Display::has_enlarge_button()`.
+ *
+ * @param {Object}  attributes               Block attributes.
+ * @param {boolean} attributes.expandInModal Whether the setting is on.
+ * @param {boolean} isHostVerified           Whether the Space's host may be framed.
+ * @return {boolean} True to show the button.
+ */
+export function hasEnlargeButton( attributes, isHostVerified = true ) {
+	return (
+		!! attributes.expandInModal &&
+		canFrame( attributes, isHostVerified ) &&
+		getEffectiveDisplay( attributes, isHostVerified ) === 'inline'
+	);
+}
+
+/**
  * The note shown when a Space can only be a card or a link, or '' when every
  * mode is available.
  *

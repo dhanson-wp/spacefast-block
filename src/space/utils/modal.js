@@ -29,14 +29,19 @@ export function supportsModal( win ) {
  * @param {boolean} event.altKey           Whether Alt was held.
  * @param {boolean} event.defaultPrevented Whether something already handled it.
  * @param {boolean} canShowModal           Result of supportsModal().
+ * @param {boolean} hasFallbackLink        Whether the trigger is a link the browser can follow. A button has none, so every click opens the modal.
  * @return {boolean} True to open the modal and cancel navigation.
  */
 export function shouldOpenModal(
 	{ button, metaKey, ctrlKey, shiftKey, altKey, defaultPrevented },
-	canShowModal
+	canShowModal,
+	hasFallbackLink = true
 ) {
 	if ( ! canShowModal || defaultPrevented ) {
 		return false;
+	}
+	if ( ! hasFallbackLink ) {
+		return true;
 	}
 	return button === 0 && ! ( metaKey || ctrlKey || shiftKey || altKey );
 }

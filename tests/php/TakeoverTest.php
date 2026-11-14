@@ -20,14 +20,15 @@ final class TakeoverTest extends TestCase {
 	 * @param string|null $name         Block name; null for freeform HTML between blocks.
 	 * @param array       $attrs        Attributes.
 	 * @param array       $inner_blocks Inner blocks.
+	 * @param string      $inner_html   The block's own HTML.
 	 * @return array
 	 */
-	private function block( $name, array $attrs = array(), array $inner_blocks = array() ) {
+	private function block( $name, array $attrs = array(), array $inner_blocks = array(), $inner_html = '' ) {
 		return array(
 			'blockName'    => $name,
 			'attrs'        => $attrs,
 			'innerBlocks'  => $inner_blocks,
-			'innerHTML'    => '',
+			'innerHTML'    => $inner_html,
 			'innerContent' => array(),
 		);
 	}
@@ -46,25 +47,43 @@ final class TakeoverTest extends TestCase {
 		$this->assertSame( $attrs, Takeover::find_fullpage_block( $blocks ) );
 	}
 
-	public function test_finds_a_nested_full_page_block() {
+	public function test_a_full_page_block_inside_a_wrapper_does_not_take_over() {
 		$attrs  = array(
 			'url'     => 'https://nested.space.fast/',
 			'display' => 'fullpage',
 		);
 		$blocks = array(
-			$this->block(
-				'core/group',
-				array(),
-				array(
-					$this->block( 'core/columns', array(), array( $this->block( 'core/column', array(), array( $this->block( 'spacefast/space', $attrs ) ) ) ) ),
-				)
-			),
+			$this->block( 'core/group', array(), array( $this->block( 'spacefast/space', $attrs ) ) ),
 		);
 
-		$this->assertSame( $attrs, Takeover::find_fullpage_block( $blocks ) );
+		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
 	}
 
-	public function test_returns_the_first_of_two_full_page_blocks_in_document_order() {
+	public function test_a_full_page_block_next_to_another_block_does_not_take_over() {
+		$attrs = array(
+			'url'     => 'https://a.space.fast/',
+			'display' => 'fullpage',
+		);
+
+		$this->assertNull(
+			Takeover::find_fullpage_block(
+				array(
+					$this->block( 'core/paragraph', array(), array(), '<p>Hello</p>' ),
+					$this->block( 'spacefast/space', $attrs ),
+				)
+			)
+		);
+		$this->assertNull(
+			Takeover::find_fullpage_block(
+				array(
+					$this->block( 'spacefast/space', $attrs ),
+					$this->block( 'core/image' ),
+				)
+			)
+		);
+	}
+
+	public function test_two_full_page_blocks_do_not_take_over() {
 		$first  = array(
 			'url'     => 'https://first.space.fast/',
 			'display' => 'fullpage',
@@ -74,11 +93,26 @@ final class TakeoverTest extends TestCase {
 			'display' => 'fullpage',
 		);
 		$blocks = array(
-			$this->block( 'core/group', array(), array( $this->block( 'spacefast/space', $first ) ) ),
+			$this->block( 'spacefast/space', $first ),
 			$this->block( 'spacefast/space', $second ),
 		);
 
-		$this->assertSame( $first, Takeover::find_fullpage_block( $blocks ) );
+		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
+	}
+
+	public function test_a_space_that_is_not_full_page_next_to_a_full_page_block_stops_it_taking_over() {
+		$blocks = array(
+			$this->block( 'spacefast/space', array( 'url' => 'https://inline.space.fast/' ) ),
+			$this->block(
+				'spacefast/space',
+				array(
+					'url'     => 'https://full.space.fast/',
+					'display' => 'fullpage',
+				)
+			),
+		);
+
+		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
 	}
 
 	public function test_skips_a_full_page_block_that_cannot_be_framed() {
@@ -87,21 +121,8 @@ final class TakeoverTest extends TestCase {
 			'display'     => 'fullpage',
 			'isFrameable' => false,
 		);
-		$frameable     = array(
-			'url'     => 'https://open.space.fast/',
-			'display' => 'fullpage',
-		);
 
 		$this->assertNull( Takeover::find_fullpage_block( array( $this->block( 'spacefast/space', $not_frameable ) ) ) );
-		$this->assertSame(
-			$frameable,
-			Takeover::find_fullpage_block(
-				array(
-					$this->block( 'spacefast/space', $not_frameable ),
-					$this->block( 'spacefast/space', $frameable ),
-				)
-			)
-		);
 	}
 
 	public function test_returns_null_when_no_block_takes_over() {
@@ -129,27 +150,23 @@ final class TakeoverTest extends TestCase {
 	}
 
 	public function test_skips_a_full_page_block_with_an_invalid_url() {
-		$blocks = array(
-			$this->block(
-				'spacefast/space',
-				array(
-					'url'     => 'not a url',
-					'display' => 'fullpage',
-				)
+		$invalid = array(
+			array(
+				'url'     => 'not a url',
+				'display' => 'fullpage',
 			),
-			$this->block(
-				'spacefast/space',
-				array(
-					'url'     => 'http://insecure.space.fast/',
-					'display' => 'fullpage',
-				)
+			array(
+				'url'     => 'http://insecure.space.fast/',
+				'display' => 'fullpage',
 			),
 		);
 
-		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
+		foreach ( $invalid as $attrs ) {
+			$this->assertNull( Takeover::find_fullpage_block( array( $this->block( 'spacefast/space', $attrs ) ) ) );
+		}
 	}
 
-	public function test_returns_the_first_renderable_block_after_one_that_cannot_render() {
+	public function test_a_block_that_cannot_render_still_counts_as_another_block() {
 		$valid  = array(
 			'url'     => 'https://valid.space.fast/',
 			'display' => 'fullpage',
@@ -162,10 +179,10 @@ final class TakeoverTest extends TestCase {
 					'display' => 'fullpage',
 				)
 			),
-			$this->block( 'core/group', array(), array( $this->block( 'spacefast/space', $valid ) ) ),
+			$this->block( 'spacefast/space', $valid ),
 		);
 
-		$this->assertSame( $valid, Takeover::find_fullpage_block( $blocks ) );
+		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
 	}
 
 	public function test_skips_a_full_page_block_on_a_host_that_is_not_verified() {
@@ -193,11 +210,22 @@ final class TakeoverTest extends TestCase {
 		$this->assertSame( $attrs, Takeover::find_fullpage_block( $blocks, array( 'spaces.example.com' => 1 ) ) );
 	}
 
-	public function test_an_unverified_host_does_not_hide_a_later_space() {
-		$valid  = array(
-			'url'     => 'https://later.space.fast/',
+	public function test_empty_paragraphs_and_blank_freeform_content_around_the_block_are_ignored() {
+		$attrs  = array(
+			'url'     => 'https://a.space.fast/',
 			'display' => 'fullpage',
 		);
+		$blocks = array(
+			$this->block( 'core/paragraph', array(), array(), '<p></p>' ),
+			$this->block( null, array(), array(), "\n\n" ),
+			$this->block( 'spacefast/space', $attrs ),
+			$this->block( 'core/paragraph', array(), array(), '<p></p>' ),
+		);
+
+		$this->assertSame( $attrs, Takeover::find_fullpage_block( $blocks ) );
+	}
+
+	public function test_an_unverified_host_does_not_take_over_even_with_a_verified_one_beside_it() {
 		$blocks = array(
 			$this->block(
 				'spacefast/space',
@@ -206,10 +234,20 @@ final class TakeoverTest extends TestCase {
 					'display' => 'fullpage',
 				)
 			),
-			$this->block( 'spacefast/space', $valid ),
+			$this->block(
+				'spacefast/space',
+				array(
+					'url'     => 'https://later.space.fast/',
+					'display' => 'fullpage',
+				)
+			),
 		);
 
-		$this->assertSame( $valid, Takeover::find_fullpage_block( $blocks ) );
+		$this->assertNull( Takeover::find_fullpage_block( $blocks ) );
+	}
+
+	public function test_empty_content_has_no_takeover() {
+		$this->assertNull( Takeover::find_fullpage_block( array() ) );
 	}
 
 	public function test_content_for_page_without_page_breaks_is_the_whole_content() {
