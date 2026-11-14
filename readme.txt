@@ -4,7 +4,7 @@ Tags: spacefast, block, app, prototype, iframe
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,12 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 
 == Changelog ==
 
+= 0.3.1 =
+* Fixed: on full page, the admin bar could cover your site's header on narrow screens while you were logged in. The layout now holds on themes that position the page differently, too.
+* Fixed: pasting the address of a private Space left the card without a title. With your account connected, the card now gets the Space's title when your account can reach that Space.
+* When Spacefast won't provide a private Space's preview image, the editor now says so and points you to the media library, instead of showing a general error.
+* The readme now describes private Spaces accurately: where the title comes from, and that you choose the preview image yourself.
+
 = 0.3.0 =
 * Full page now only takes over when the Space is the only block on the page. With other blocks present it shows inline, so nothing on the page is hidden, and the editor tells you why.
 * New "Enlarge on click button" setting for inline. It adds a button over the Space that opens it in a modal.
@@ -118,6 +124,9 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 * First release.
 
 == Upgrade notice ==
+
+= 0.3.1 =
+Fixes the admin bar covering the header on full page, and private Spaces pasted by address now get their title.
 
 = 0.3.0 =
 Full page now needs the Space to be the only block on the page; otherwise it shows inline. Adds an enlarge button for inline and external link icons.
