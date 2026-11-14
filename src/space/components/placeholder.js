@@ -17,10 +17,11 @@ import { looksLikeUrl } from '../utils/url';
 /**
  * What an editor sees before a Space is chosen: a link field and a picker.
  *
- * @param {Object}                    props         Component props.
- * @param {(details: Object) => void} props.onApply Called with the details of the chosen Space.
+ * @param {Object}                    props            Component props.
+ * @param {(details: Object) => void} props.onApply    Called with the details of the chosen Space.
+ * @param {() => void}                [props.onCancel] When replacing a Space: called to keep the current one.
  */
-export default function SpacePlaceholder( { onApply } ) {
+export default function SpacePlaceholder( { onApply, onCancel } ) {
 	const [ link, setLink ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 	const [ isResolving, setIsResolving ] = useState( false );
@@ -146,6 +147,15 @@ export default function SpacePlaceholder( { onApply } ) {
 									)
 								: __( 'Choose a Space', 'spacefast-block' ) }
 						</Button>
+						{ onCancel && (
+							<Button
+								variant="tertiary"
+								__next40pxDefaultSize
+								onClick={ onCancel }
+							>
+								{ __( 'Cancel', 'spacefast-block' ) }
+							</Button>
+						) }
 					</Flex>
 				</Flex>
 			</form>

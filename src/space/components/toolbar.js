@@ -8,7 +8,6 @@ import {
 import { external } from '@wordpress/icons';
 
 import {
-	getClearedSpaceAttributes,
 	getEffectiveDisplay,
 	getFullHeightToggleAttributes,
 	isFullHeight,
@@ -22,6 +21,7 @@ import { frameUrl } from '../utils/url';
  * @param {Object}                 props                Component props.
  * @param {Object}                 props.attributes     Block attributes.
  * @param {(next: Object) => void} props.setAttributes  Updates block attributes.
+ * @param {() => void}             props.onReplace      Shows the placeholder to choose another Space.
  * @param {() => void}             props.onRefresh      Fetches the Space's details again.
  * @param {boolean}                props.isRefreshing   Whether a refresh is running.
  * @param {boolean}                props.isHostVerified Whether the Space's host may be framed.
@@ -29,6 +29,7 @@ import { frameUrl } from '../utils/url';
 export default function SpaceToolbar( {
 	attributes,
 	setAttributes,
+	onReplace,
 	onRefresh,
 	isRefreshing,
 	isHostVerified,
@@ -63,11 +64,7 @@ export default function SpaceToolbar( {
 				</BlockControls>
 			) }
 			<BlockControls group="other">
-				<ToolbarButton
-					onClick={ () =>
-						setAttributes( getClearedSpaceAttributes() )
-					}
-				>
+				<ToolbarButton onClick={ onReplace }>
 					{ __( 'Replace', 'spacefast-block' ) }
 				</ToolbarButton>
 				<ToolbarButton

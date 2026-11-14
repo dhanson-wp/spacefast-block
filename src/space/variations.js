@@ -5,8 +5,7 @@ import icon from './icon';
 /** @typedef {import('@wordpress/blocks').WPBlockVariation} WPBlockVariation */
 
 /**
- * One variation per display mode, so each mode can be inserted or switched to
- * directly. The inline variation stands in for the block itself.
+ * One variation per display mode, so each mode can be inserted directly. The inline variation stands in for the block itself.
  *
  * @type {WPBlockVariation[]}
  */
@@ -54,7 +53,9 @@ const variations = [
 	},
 ].map( ( variation ) => ( {
 	...variation,
-	scope: [ 'inserter', 'transform' ],
+	// Inserter only: the Display setting switches modes, so a second chooser
+	// in the inspector would repeat it.
+	scope: [ 'inserter' ],
 	isActive: [ 'display' ],
 } ) );
 

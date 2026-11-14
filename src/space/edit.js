@@ -37,6 +37,10 @@ export default function Edit( {
 
 	// A URL that can't be used shows the placeholder, as the front end renders nothing.
 	const hasSpace = !! frameUrl( attributes.url, '' );
+	// Replacing shows the placeholder again without touching the current Space,
+	// so Cancel can bring it straight back.
+	const [ isReplacing, setIsReplacing ] = useState( false );
+	const showSpace = hasSpace && ! isReplacing;
 	// Nothing is framed until the server confirms the host, as on the front end.
 	const { isHostVerified, setHostVerified } = useHostVerified(
 		attributes.url
@@ -44,18 +48,18 @@ export default function Edit( {
 	const isCheckingHost = hasSpace && isHostVerified === undefined;
 	const canFrameHost = isHostVerified === true;
 	const minHeight =
-		hasSpace && ! isCheckingHost
+		showSpace && ! isCheckingHost
 			? getMinHeight( attributes, canFrameHost )
 			: undefined;
 	// The link mode puts color and font size on its button; every other mode
 	// on the block wrapper.
 	const supportProps = useColorAndFontSizeProps( attributes );
 	const isLink =
-		hasSpace &&
+		showSpace &&
 		! isCheckingHost &&
 		getEffectiveDisplay( attributes, canFrameHost ) === 'link';
 	const wrapperClassNames = [
-		hasSpace && ! isCheckingHost
+		showSpace && ! isCheckingHost
 			? getBlockClassNames( attributes, canFrameHost )
 			: '',
 		isLink ? '' : supportProps.className,
@@ -73,6 +77,7 @@ export default function Edit( {
 	const applySpace = ( details ) => {
 		setHostVerified( details.url, details.verified );
 		setAttributes( getSpaceAttributes( attributes, details ) );
+		setIsReplacing( false );
 	};
 
 	/**
@@ -103,10 +108,15 @@ export default function Edit( {
 		setIsRefreshing( false );
 	};
 
-	if ( ! hasSpace ) {
+	if ( ! showSpace ) {
 		return (
 			<div { ...blockProps }>
-				<SpacePlaceholder onApply={ applySpace } />
+				<SpacePlaceholder
+					onApply={ applySpace }
+					onCancel={
+						hasSpace ? () => setIsReplacing( false ) : undefined
+					}
+				/>
 			</div>
 		);
 	}
@@ -124,6 +134,7 @@ export default function Edit( {
 			<SpaceToolbar
 				attributes={ attributes }
 				setAttributes={ setAttributes }
+				onReplace={ () => setIsReplacing( true ) }
 				onRefresh={ () => refreshDetails() }
 				isRefreshing={ isRefreshing }
 				isHostVerified={ canFrameHost }
