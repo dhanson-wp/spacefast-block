@@ -4,7 +4,7 @@ Tags: spacefast, block, app, prototype, iframe
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,15 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 
 == Changelog ==
 
+= 0.3.0 =
+* Full page now only takes over when the Space is the only block on the page. With other blocks present it shows inline, so nothing on the page is hidden, and the editor tells you why.
+* New "Enlarge on click button" setting for inline. It adds a button over the Space that opens it in a modal.
+* Links and buttons that leave your site for the Space now show an external link icon, so visitors know what to expect.
+* Each display mode has its own icon in the block inserter and in the Display setting.
+* Replacing a Space now has a Cancel button that keeps the one you have.
+* The block's sidebar has one place to choose the display instead of two.
+* Fixed: resetting the Display or click settings could switch a block to a card, or to "Go to the Space", while the editor was still checking the Space.
+
 = 0.2.0 =
 * Full page now shows the whole Space as part of the page: your header, the Space at its full length, and then your footer, in one scroll. Your site fetches the Space and serves it in a sandboxed frame to make this work; see "Third-party services".
 * New "Show the whole Space" setting for full page, on by default. Turn it off if a Space doesn't look right, and it fills one screen and scrolls inside. The block also switches to that view on its own when a Space can't be shown at full length.
@@ -109,6 +118,9 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 * First release.
 
 == Upgrade notice ==
+
+= 0.3.0 =
+Full page now needs the Space to be the only block on the page; otherwise it shows inline. Adds an enlarge button for inline and external link icons.
 
 = 0.2.0 =
 Full page now shows the whole Space with your footer after it. Your site fetches the Space to do this; you can turn it off per block.
