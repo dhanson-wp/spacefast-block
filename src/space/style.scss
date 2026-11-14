@@ -590,9 +590,16 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 	overflow-y: auto;
 }
 
+// They are placed against the document, not <body>: a positioned <body> would
+// also become the containing block of the admin bar, which WordPress makes
+// `position: absolute; top: 0` at 600px and narrower, and the bar would drop
+// below the 46px top margin WordPress puts on <html>, onto the header. So the
+// admin bar's height is added to every offset here instead.
+$spacefast-below-bar: "var(--spacefast-admin-bar, 0px) + var(--spacefast-header, 0px)";
+
 #{$spacefast-ready} {
 	--spacefast-space: var(--spacefast-space-height, calc#{$spacefast-screen});
-	position: relative;
+	position: static !important;
 	height: calc(var(--spacefast-header, 0px) + var(--spacefast-space) + var(--spacefast-footer, 0px));
 	margin: 0 !important;
 
@@ -601,8 +608,8 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 		--spacefast-space: var(--spacefast-space-height, calc#{$spacefast-screen-dynamic});
 	}
 
-	// The header, Space, and footer are placed against the page itself, so no
-	// wrapper between them and <body> may become their positioning context.
+	// The header, Space, and footer are placed against the document itself, so
+	// no wrapper between them and <body> may become their positioning context.
 	*:has(.wp-block-spacefast-space.is-fullpage-takeover),
 	*:has([data-spacefast-region]) {
 		position: static !important;
@@ -616,11 +623,11 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 	}
 
 	[data-spacefast-region="header"] {
-		top: 0;
+		top: var(--spacefast-admin-bar, 0px);
 	}
 
 	[data-spacefast-region="footer"] {
-		top: calc(var(--spacefast-header, 0px) + var(--spacefast-space));
+		top: calc(#{$spacefast-below-bar} + var(--spacefast-space));
 		bottom: auto;
 		max-height: none;
 		overflow-y: visible;
@@ -628,7 +635,7 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 
 	.wp-block-spacefast-space.is-fullpage-takeover {
 		position: absolute;
-		inset: var(--spacefast-header, 0px) 0 auto 0;
+		inset: calc(#{$spacefast-below-bar}) 0 auto 0;
 		height: var(--spacefast-space) !important;
 	}
 }
