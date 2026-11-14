@@ -206,6 +206,24 @@ function isLaidOut( element ) {
 }
 
 /**
+ * Whether an element is the containing block of absolutely positioned
+ * descendants: it is positioned, or a transform, filter, perspective, or
+ * containment makes it one.
+ *
+ * @param {CSSStyleDeclaration} style The element's computed style.
+ * @return {boolean} True when it contains them.
+ */
+function isContainingBlock( style ) {
+	return (
+		style.position !== 'static' ||
+		( !! style.transform && style.transform !== 'none' ) ||
+		( !! style.filter && style.filter !== 'none' ) ||
+		( !! style.perspective && style.perspective !== 'none' ) ||
+		/\b(layout|paint|strict|content)\b/.test( style.contain || '' )
+	);
+}
+
+/**
  * The first visible element for a list of selectors, in priority order.
  *
  * @param {Document} doc       The document.
@@ -222,7 +240,8 @@ function findRegion( doc, selectors ) {
 }
 
 /**
- * Measure the header, footer, and admin bar and write `--spacefast-admin-bar`,
+ * Measure the header, footer, admin bar, and where <html>'s content starts,
+ * and write `--spacefast-admin-bar`, `--spacefast-offset`,
  * `--spacefast-header`, and `--spacefast-footer` on <html>, now and whenever
  * any of them or the window changes size.
  *
@@ -251,10 +270,15 @@ function startTakeover( doc, win ) {
 	let frame = 0;
 	const update = () => {
 		frame = 0;
+		const rootStyle = win.getComputedStyle( root );
 		const layout = computeLayout( {
 			adminBarHeight: height( adminBar ),
 			headerHeight: height( header ),
 			footerHeight: height( footer ),
+			rootTop: root.getBoundingClientRect().top + win.scrollY,
+			rootBorderTop: parseFloat( rootStyle.borderTopWidth ) || 0,
+			rootPaddingTop: parseFloat( rootStyle.paddingTop ) || 0,
+			rootIsPositioned: isContainingBlock( rootStyle ),
 			hideHeader,
 			hideFooter,
 		} );
@@ -262,6 +286,7 @@ function startTakeover( doc, win ) {
 			'--spacefast-admin-bar',
 			`${ layout.adminBar }px`
 		);
+		root.style.setProperty( '--spacefast-offset', `${ layout.offset }px` );
 		root.style.setProperty( '--spacefast-header', `${ layout.header }px` );
 		root.style.setProperty( '--spacefast-footer', `${ layout.footer }px` );
 		// Switches the styles from the pinned fallback to the measured layout.

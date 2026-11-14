@@ -73,6 +73,7 @@ describe( 'computeLayout', () => {
 	it( 'gives the header and the footer their natural heights', () => {
 		expect( computeLayout( base ) ).toEqual( {
 			adminBar: 0,
+			offset: 0,
 			header: 90,
 			footer: 200,
 		} );
@@ -81,6 +82,7 @@ describe( 'computeLayout', () => {
 	it( 'reports the admin bar separately from the header', () => {
 		expect( computeLayout( { ...base, adminBarHeight: 32 } ) ).toEqual( {
 			adminBar: 32,
+			offset: 0,
 			header: 90,
 			footer: 200,
 		} );
@@ -95,12 +97,13 @@ describe( 'computeLayout', () => {
 	it( 'zeroes the header when it is hidden and keeps the admin bar', () => {
 		expect(
 			computeLayout( { ...base, adminBarHeight: 46, hideHeader: true } )
-		).toEqual( { adminBar: 46, header: 0, footer: 200 } );
+		).toEqual( { adminBar: 46, offset: 0, header: 0, footer: 200 } );
 	} );
 
 	it( 'zeroes the footer when it is hidden', () => {
 		expect( computeLayout( { ...base, hideFooter: true } ) ).toEqual( {
 			adminBar: 0,
+			offset: 0,
 			header: 90,
 			footer: 0,
 		} );
@@ -109,6 +112,56 @@ describe( 'computeLayout', () => {
 	it( 'treats a missing header or footer as 0', () => {
 		expect(
 			computeLayout( { hideHeader: false, hideFooter: false } )
-		).toEqual( { adminBar: 0, header: 0, footer: 0 } );
+		).toEqual( { adminBar: 0, offset: 0, header: 0, footer: 0 } );
+	} );
+} );
+
+describe( 'computeLayout offset', () => {
+	const base = { hideHeader: false, hideFooter: false };
+
+	it( "starts the page below <html>'s admin bar margin", () => {
+		expect(
+			computeLayout( { ...base, adminBarHeight: 46, rootTop: 46 } ).offset
+		).toBe( 46 );
+	} );
+
+	it( 'adds nothing when <html> is positioned, because it is then the containing block', () => {
+		expect(
+			computeLayout( {
+				...base,
+				adminBarHeight: 32,
+				rootTop: 32,
+				rootIsPositioned: true,
+			} ).offset
+		).toBe( 0 );
+	} );
+
+	it( "follows <html>'s margin, not the admin bar, when the bar is hidden", () => {
+		expect(
+			computeLayout( { ...base, adminBarHeight: 0, rootTop: 46 } ).offset
+		).toBe( 46 );
+	} );
+
+	it( "is 0 when the admin bar overlaps a page without <html>'s margin", () => {
+		expect(
+			computeLayout( { ...base, adminBarHeight: 32, rootTop: 0 } ).offset
+		).toBe( 0 );
+	} );
+
+	it( "counts <html>'s border and padding", () => {
+		const measures = {
+			...base,
+			rootTop: 32,
+			rootBorderTop: 2,
+			rootPaddingTop: 10,
+		};
+		expect( computeLayout( measures ).offset ).toBe( 44 );
+		expect(
+			computeLayout( { ...measures, rootIsPositioned: true } ).offset
+		).toBe( 10 );
+	} );
+
+	it( 'never goes negative', () => {
+		expect( computeLayout( { ...base, rootTop: -20 } ).offset ).toBe( 0 );
 	} );
 } );

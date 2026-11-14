@@ -590,12 +590,15 @@ html.spacefast-takeover-ready:has(body.has-spacefast-fullpage .wp-block-spacefas
 	overflow-y: auto;
 }
 
-// They are placed against the document, not <body>: a positioned <body> would
-// also become the containing block of the admin bar, which WordPress makes
-// `position: absolute; top: 0` at 600px and narrower, and the bar would drop
-// below the 46px top margin WordPress puts on <html>, onto the header. So the
-// admin bar's height is added to every offset here instead.
-$spacefast-below-bar: "var(--spacefast-admin-bar, 0px) + var(--spacefast-header, 0px)";
+// They are placed against their containing block, not <body>: a positioned
+// <body> would also become the containing block of the admin bar, which
+// WordPress makes `position: absolute; top: 0` at 600px and narrower, and the
+// bar would drop below the 46px top margin WordPress puts on <html>, onto the
+// header. `--spacefast-offset` is how far below that containing block <html>'s
+// content starts, as the view script measured it (from the document's top,
+// or from <html> itself when a theme positions it), so it never counts the
+// margin twice.
+$spacefast-under-header: "var(--spacefast-offset, 0px) + var(--spacefast-header, 0px)";
 
 #{$spacefast-ready} {
 	--spacefast-space: var(--spacefast-space-height, calc#{$spacefast-screen});
@@ -608,7 +611,7 @@ $spacefast-below-bar: "var(--spacefast-admin-bar, 0px) + var(--spacefast-header,
 		--spacefast-space: var(--spacefast-space-height, calc#{$spacefast-screen-dynamic});
 	}
 
-	// The header, Space, and footer are placed against the document itself, so
+	// The header, Space, and footer are placed against their containing block, so
 	// no wrapper between them and <body> may become their positioning context.
 	*:has(.wp-block-spacefast-space.is-fullpage-takeover),
 	*:has([data-spacefast-region]) {
@@ -623,11 +626,11 @@ $spacefast-below-bar: "var(--spacefast-admin-bar, 0px) + var(--spacefast-header,
 	}
 
 	[data-spacefast-region="header"] {
-		top: var(--spacefast-admin-bar, 0px);
+		top: var(--spacefast-offset, 0px);
 	}
 
 	[data-spacefast-region="footer"] {
-		top: calc(#{$spacefast-below-bar} + var(--spacefast-space));
+		top: calc(#{$spacefast-under-header} + var(--spacefast-space));
 		bottom: auto;
 		max-height: none;
 		overflow-y: visible;
@@ -635,7 +638,7 @@ $spacefast-below-bar: "var(--spacefast-admin-bar, 0px) + var(--spacefast-header,
 
 	.wp-block-spacefast-space.is-fullpage-takeover {
 		position: absolute;
-		inset: calc(#{$spacefast-below-bar}) 0 auto 0;
+		inset: calc(#{$spacefast-under-header}) 0 auto 0;
 		height: var(--spacefast-space) !important;
 	}
 }
