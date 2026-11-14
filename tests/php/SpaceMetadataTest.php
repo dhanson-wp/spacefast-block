@@ -220,4 +220,74 @@ final class SpaceMetadataTest extends TestCase {
 		$this->assertSame( 'other.space.fast', $meta['hostname'] );
 		$this->assertSame( 'https://other.space.fast/', $meta['url'] );
 	}
+	private function account_space( array $overrides = array() ) {
+		return array_merge(
+			array(
+				'id'              => 'spc_0123456789abcdef0123456789abcdef',
+				'title'           => 'Fernhill   project room',
+				'defaultHostname' => 'a.space.fast',
+				'liveUrl'         => 'https://a.space.fast/',
+				'config'          => array( 'meta' => array( 'description' => 'For the <b>team</b> only' ) ),
+			),
+			$overrides
+		);
+	}
+
+	public function test_account_details_from_a_space_record() {
+		$this->assertSame(
+			array(
+				'spaceId'     => 'spc_0123456789abcdef0123456789abcdef',
+				'title'       => 'Fernhill project room',
+				'description' => 'For the team only',
+			),
+			Space_Metadata::account_details( $this->account_space(), 'a.space.fast' )
+		);
+	}
+
+	public function test_account_details_without_a_description_or_a_text_title() {
+		$details = Space_Metadata::account_details(
+			$this->account_space(
+				array(
+					'title'  => array( 'x' ),
+					'config' => array(),
+				)
+			),
+			'a.space.fast'
+		);
+
+		$this->assertSame( '', $details['title'] );
+		$this->assertSame( '', $details['description'] );
+	}
+
+	public function test_account_details_matches_the_live_url_host_and_ignores_case() {
+		$space = $this->account_space(
+			array(
+				'defaultHostname' => 'b.space.fast',
+				'liveUrl'         => 'https://Portal.Example.com/',
+			)
+		);
+
+		$this->assertNotNull( Space_Metadata::account_details( $space, 'portal.example.com' ) );
+	}
+
+	/**
+	 * @dataProvider unusable_account_spaces
+	 */
+	public function test_account_details_refuses_a_record_for_another_space( $overrides, $hostname ) {
+		$this->assertNull( Space_Metadata::account_details( $this->account_space( $overrides ), $hostname ) );
+	}
+
+	public function unusable_account_spaces() {
+		return array(
+			'other host'     => array( array(), 'b.space.fast' ),
+			'empty hostname' => array(
+				array(
+					'defaultHostname' => '',
+					'liveUrl'         => '',
+				),
+				'',
+			),
+			'bad id'         => array( array( 'id' => 'nope' ), 'a.space.fast' ),
+		);
+	}
 }

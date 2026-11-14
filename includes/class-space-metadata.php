@@ -52,6 +52,55 @@ class Space_Metadata {
 	}
 
 	/**
+	 * Title, description, and ID for a private Space, from the connected
+	 * author's own Spacefast record of it (`GET /spaces/resolve`).
+	 *
+	 * Only a record whose default hostname or live URL host is the hostname that
+	 * was resolved is used, so one Space's details never land on another's URL.
+	 *
+	 * @param array  $space    Space record from the API.
+	 * @param string $hostname Hostname of the URL being resolved.
+	 * @return array{spaceId:string,title:string,description:string}|null Null when the record does not fit.
+	 */
+	public static function account_details( array $space, string $hostname ): ?array {
+		$hostname = strtolower( rtrim( $hostname, '.' ) );
+		if ( '' === $hostname || ! Space_Lookup::is_valid_space_id( $space['id'] ?? null ) ) {
+			return null;
+		}
+
+		$hosts = array( self::text( $space, 'defaultHostname' ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- No WordPress available here.
+		$hosts[] = (string) parse_url( self::text( $space, 'liveUrl' ), PHP_URL_HOST );
+		$hosts   = array_map(
+			function ( $host ) {
+				return strtolower( rtrim( $host, '.' ) );
+			},
+			$hosts
+		);
+		if ( ! in_array( $hostname, $hosts, true ) ) {
+			return null;
+		}
+
+		$meta = isset( $space['config']['meta'] ) && is_array( $space['config']['meta'] ) ? $space['config']['meta'] : array();
+		return array(
+			'spaceId'     => $space['id'],
+			'title'       => self::plain_text( self::text( $space, 'title' ) ),
+			'description' => self::plain_text( self::text( $meta, 'description' ) ),
+		);
+	}
+
+	/**
+	 * Reads a string field from an array.
+	 *
+	 * @param array  $row   Array.
+	 * @param string $field Field name.
+	 * @return string
+	 */
+	private static function text( array $row, string $field ): string {
+		return isset( $row[ $field ] ) && is_string( $row[ $field ] ) ? $row[ $field ] : '';
+	}
+
+	/**
 	 * Reads title, description, and image from HTML.
 	 *
 	 * @param string $body HTML.

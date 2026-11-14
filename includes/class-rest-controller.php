@@ -351,7 +351,34 @@ class Rest_Controller {
 	 */
 	private static function space_response( string $url, array $metadata, array $extra ): WP_REST_Response {
 		Verified_Hosts::record( $url );
+		if ( ! empty( $metadata['isPrivate'] ) ) {
+			$details = self::account_details( (string) $metadata['hostname'] );
+			if ( null !== $details ) {
+				$metadata['title']       = $details['title'];
+				$metadata['description'] = $details['description'];
+				$extra['spaceId']        = $details['spaceId'];
+			}
+		}
 		return new WP_REST_Response( array_merge( $metadata, $extra, array( 'verified' => true ) ) );
+	}
+
+	/**
+	 * A private Space's title, description, and ID, read with the current
+	 * user's own key. The page itself answers 401 or 403, so this is the only
+	 * place they can come from. Nothing is cached: the cached metadata is shared
+	 * by every editor, and only those whose account can reach the Space may
+	 * learn more than its hostname.
+	 *
+	 * @param string $hostname Space hostname.
+	 * @return array{spaceId:string,title:string,description:string}|null Null when not connected or the Space is out of reach.
+	 */
+	private static function account_details( string $hostname ): ?array {
+		$user_id = get_current_user_id();
+		if ( '' === $hostname || ! Connection::is_connected( $user_id ) ) {
+			return null;
+		}
+		$space = Connection::request( $user_id, 'GET', '/spaces/resolve', array( 'ref' => $hostname ) );
+		return is_wp_error( $space ) ? null : Space_Metadata::account_details( $space, $hostname );
 	}
 
 	/**
