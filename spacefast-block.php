@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Spacefast Block
  * Description:       Show any Spacefast Space inline, full page, as a card, or as a link.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.7
  * Requires PHP:      7.4
  * Author:            Derek Hanson
@@ -17,7 +17,7 @@ namespace Spacefast_Block;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SPACEFAST_BLOCK_VERSION', '0.1.0' );
+define( 'SPACEFAST_BLOCK_VERSION', '0.2.0' );
 define( 'SPACEFAST_BLOCK_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once SPACEFAST_BLOCK_DIR . 'includes/class-space-url.php';

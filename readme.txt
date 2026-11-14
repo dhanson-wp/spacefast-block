@@ -4,7 +4,7 @@ Tags: spacefast, block, app, prototype, iframe
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,10 +100,18 @@ Terms and privacy policy: see the links above, and https://spacefast.com/.
 
 == Changelog ==
 
+= 0.2.0 =
+* Full page now shows the whole Space as part of the page: your header, the Space at its full length, and then your footer, in one scroll. Your site fetches the Space and serves it in a sandboxed frame to make this work; see "Third-party services".
+* New "Show the whole Space" setting for full page, on by default. Turn it off if a Space doesn't look right, and it fills one screen and scrolls inside. The block also switches to that view on its own when a Space can't be shown at full length.
+* The block now says "Connect to Spacefast" up front when you haven't connected an account, and the sign-in screen explains what Spacefast's approval page asks for.
+
 = 0.1.0 =
 * First release.
 
 == Upgrade notice ==
+
+= 0.2.0 =
+Full page now shows the whole Space with your footer after it. Your site fetches the Space to do this; you can turn it off per block.
 
 = 0.1.0 =
 First release.
