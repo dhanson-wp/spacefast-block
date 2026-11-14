@@ -72,3 +72,8 @@
 .wp-block-spacefast-space.is-display-fullpage .wp-block-spacefast-space__host-notice {
 	flex: none;
 }
+
+// The notice sits under the image buttons in the settings sidebar.
+.wp-block-spacefast-space__upload-error {
+	margin: 12px 0 0;
+}

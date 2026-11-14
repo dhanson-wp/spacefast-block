@@ -487,8 +487,16 @@ class Rest_Controller {
 
 		$image = Api_Client::request_raw( '/spaces/' . $space_id . '/thumbnail', $key );
 		if ( is_wp_error( $image ) ) {
-			if ( 401 === ( $image->get_error_data()['status'] ?? 0 ) ) {
+			$status = (int) ( $image->get_error_data()['status'] ?? 0 );
+			if ( 401 === $status ) {
 				Connection::clear( $user_id );
+			}
+			if ( 'spacefast_preview_forbidden' === Space_Lookup::thumbnail_error_code( $status, (string) $image->get_error_code() ) ) {
+				return new WP_Error(
+					'spacefast_preview_forbidden',
+					__( 'Spacefast did not let your connected account download a preview of this Space. Choose an image from the media library instead.', 'spacefast-block' ),
+					array( 'status' => 403 )
+				);
 			}
 			return $image;
 		}

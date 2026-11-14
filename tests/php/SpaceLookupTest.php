@@ -159,4 +159,21 @@ class SpaceLookupTest extends TestCase {
 			'empty'           => array( '', false ),
 		);
 	}
+
+	/**
+	 * @dataProvider thumbnail_failures
+	 */
+	public function test_thumbnail_failure_codes( $status, $code, $expected ) {
+		$this->assertSame( $expected, Space_Lookup::thumbnail_error_code( $status, $code ) );
+	}
+
+	public function thumbnail_failures() {
+		return array(
+			'refused'        => array( 403, 'forbidden', 'spacefast_preview_forbidden' ),
+			'refused, other' => array( 403, 'spacefast_http_error', 'spacefast_preview_forbidden' ),
+			'no live'        => array( 404, 'not_found', 'not_found' ),
+			'dead key'       => array( 401, 'unauthorized', 'unauthorized' ),
+			'server'         => array( 502, 'spacefast_image_unavailable', 'spacefast_image_unavailable' ),
+		);
+	}
 }

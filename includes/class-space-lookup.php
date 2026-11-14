@@ -130,6 +130,23 @@ class Space_Lookup {
 	}
 
 	/**
+	 * The error code for a thumbnail the API would not hand over.
+	 *
+	 * A 403 is Spacefast refusing this connection's key for the image (it says
+	 * "You do not have access to this space" even when the same key can read
+	 * the Space), so it gets its own code and an accurate message. Any other
+	 * failure keeps its code; a 401 must stay `unauthorized`-shaped so the dead
+	 * key is cleared.
+	 *
+	 * @param int    $status HTTP status of the failure.
+	 * @param string $code   Error code from the API client.
+	 * @return string
+	 */
+	public static function thumbnail_error_code( int $status, string $code ): string {
+		return 403 === $status ? 'spacefast_preview_forbidden' : $code;
+	}
+
+	/**
 	 * Reads a string field from a row.
 	 *
 	 * @param array  $row   Row.

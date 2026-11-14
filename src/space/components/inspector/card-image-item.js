@@ -5,6 +5,7 @@ import {
 	BaseControl,
 	Button,
 	Flex,
+	Notice,
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
 import { MediaUpload, MediaUploadCheck } from '@wordpress/block-editor';
@@ -33,8 +34,9 @@ export default function CardImageItem( {
 } ) {
 	const { imageId, isPrivate } = attributes;
 	const [ isUploading, setIsUploading ] = useState( false );
-	const { createSuccessNotice, createErrorNotice } =
-		useDispatch( noticesStore );
+	// Shown under the buttons until the next try, so a refusal is not missed.
+	const [ uploadError, setUploadError ] = useState( '' );
+	const { createSuccessNotice } = useDispatch( noticesStore );
 	const postId = useSelect(
 		( select ) => select( 'core/editor' )?.getCurrentPostId?.() || 0,
 		[]
@@ -43,6 +45,7 @@ export default function CardImageItem( {
 
 	const upload = async () => {
 		setIsUploading( true );
+		setUploadError( '' );
 		try {
 			const media = await sideloadImage( sideloadRequest, postId );
 			// `imageUrl` keeps the Space's own image, the fallback if this one is deleted.
@@ -51,7 +54,7 @@ export default function CardImageItem( {
 				type: 'snackbar',
 			} );
 		} catch ( error ) {
-			createErrorNotice( getErrorMessage( error ), { type: 'snackbar' } );
+			setUploadError( getErrorMessage( error ) );
 		}
 		setIsUploading( false );
 	};
@@ -119,6 +122,15 @@ export default function CardImageItem( {
 					</Button>
 				) }
 			</Flex>
+			{ uploadError && sideloadRequest && (
+				<Notice
+					status="error"
+					isDismissible={ false }
+					className="wp-block-spacefast-space__upload-error"
+				>
+					{ uploadError }
+				</Notice>
+			) }
 		</ToolsPanelItem>
 	);
 }
