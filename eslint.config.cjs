@@ -37,6 +37,7 @@ module.exports = [
 					'@wordpress/components': [
 						'__experimentalToggleGroupControl',
 						'__experimentalToggleGroupControlOption',
+						'__experimentalToggleGroupControlOptionIcon',
 						'__experimentalToolsPanel',
 						'__experimentalToolsPanelItem',
 						'__experimentalUnitControl',

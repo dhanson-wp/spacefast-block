@@ -3,7 +3,7 @@ import {
 	Flex,
 	Notice,
 	__experimentalToggleGroupControl as ToggleGroupControl,
-	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
+	__experimentalToggleGroupControlOptionIcon as ToggleGroupControlOptionIcon,
 	__experimentalToolsPanel as ToolsPanel,
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
@@ -15,9 +15,11 @@ import {
 	isDisplayAvailable,
 } from '../../utils/display';
 import useToolsPanelDropdownMenuProps from '../../utils/use-tools-panel-dropdown-menu-props';
+import modeIcons from '../../mode-icons';
 
 /**
- * The Display panel: which of the four modes shows the Space.
+ * The Display panel: which of the four modes shows the Space, as a row of
+ * icons like the Group block's layout choices.
  *
  * @param {Object}                 props                Component props.
  * @param {Object}                 props.attributes     Block attributes.
@@ -72,9 +74,10 @@ export default function DisplayPanel( {
 						}
 					>
 						{ options.map( ( option ) => (
-							<ToggleGroupControlOption
+							<ToggleGroupControlOptionIcon
 								key={ option.value }
 								value={ option.value }
+								icon={ modeIcons[ option.value ] }
 								label={ option.label }
 								disabled={
 									! isDisplayAvailable(

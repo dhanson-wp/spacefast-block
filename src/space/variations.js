@@ -1,11 +1,14 @@
 import { __ } from '@wordpress/i18n';
 
 import icon from './icon';
+import modeIcons from './mode-icons';
 
 /** @typedef {import('@wordpress/blocks').WPBlockVariation} WPBlockVariation */
 
 /**
- * One variation per display mode, so each mode can be inserted directly. The inline variation stands in for the block itself.
+ * One variation per display mode, so each mode can be inserted directly. The
+ * inline one is the block itself and keeps the Spacefast mark; the others get
+ * their mode's icon so they can be told apart in the inserter. The inline variation stands in for the block itself.
  *
  * @type {WPBlockVariation[]}
  */
@@ -28,7 +31,7 @@ const variations = [
 			'Show a Spacefast Space as the page itself, between your header and footer.',
 			'spacefast-block'
 		),
-		icon,
+		icon: modeIcons.fullpage,
 		attributes: { display: 'fullpage' },
 	},
 	{
@@ -38,7 +41,7 @@ const variations = [
 			'Show a Spacefast Space as a card with its image, title, and description.',
 			'spacefast-block'
 		),
-		icon,
+		icon: modeIcons.card,
 		attributes: { display: 'card' },
 	},
 	{
@@ -48,7 +51,7 @@ const variations = [
 			'Show a Spacefast Space as a button that opens it.',
 			'spacefast-block'
 		),
-		icon,
+		icon: modeIcons.link,
 		attributes: { display: 'link' },
 	},
 ].map( ( variation ) => ( {
