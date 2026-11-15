@@ -17,7 +17,7 @@ Spacefast Block adds one block, "Spacefast", that puts a Space from [Spacefast](
 **Four ways to show a Space**
 
 * **Inline** shows the Space in a frame in the flow of the page. Set a minimum height or an aspect ratio, and turn on a title bar if you want one.
-* **Full page** lets the Space take over the page. You can keep or hide the site header and footer. With "Show the whole Space" on, the page scrolls through the Space at its full length, from your header to your footer, like any other page.
+* **Full page** lets the Space take over the page when it's the only block on the page; otherwise it displays inline. You can keep or hide the site header and footer. With "Show the whole Space" on, the page scrolls through the Space at its full length, from your header to your footer, like any other page.
 * **Card** shows the Space's title, description, and preview image as a card. Choose the image position and which parts to show.
 * **Link** shows a button-style link to the Space.
 
@@ -37,9 +37,11 @@ A small Spacefast mark appears with the block. A toggle in the block settings tu
 
 == Installation ==
 
-1. Upload the `spacefast-block` folder to `/wp-content/plugins/`, or install the plugin from the Plugins screen in WordPress.
+1. Download `spacefast-block.zip` from [GitHub releases](https://github.com/dhanson-wp/spacefast-block/releases/latest). In WordPress, go to Plugins > Add New Plugin > Upload Plugin, choose the ZIP, and install it.
 2. Activate the plugin.
 3. Edit a page or post, add the "Spacefast" block, and paste a Space address or connect your account.
+
+GitHub's automatic Source code downloads don't include the compiled block files. Use the attached release ZIP, or follow README.md to build from source.
 
 == Frequently asked questions ==
 
@@ -73,7 +75,7 @@ Yes. The block accepts any address that answers as a Spacefast Space, including 
 
 == Third-party services ==
 
-This plugin connects to Spacefast, and to whatever host a Space names for its preview image. For Spacefast's automatic screenshots, that host is s0.wp.com, WordPress.com's mShots service. The plugin sends nothing about your visitors.
+This plugin connects to Spacefast, and to whatever host a Space names for its preview image. For Spacefast's automatic screenshots, that host is s0.wp.com, WordPress.com's mShots service. The plugin doesn't send visitor information to the Spacefast API. Frames and remote preview images make requests from visitors' browsers to the relevant hosts, which receive normal request information such as the visitor's IP address and browser headers.
 
 **Spacefast API (api.spacefast.com)**
 

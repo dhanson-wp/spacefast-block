@@ -5,3 +5,30 @@ spacefast-block.zip
 .superpowers/
 .DS_Store
 .phpunit.result.cache
+
+# Local credentials and environment configuration.
+.env
+.env.*
+!.env.example
+!.env.sample
+.npmrc
+auth.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Agent state, internal planning, and local reports.
+.claude/
+.codex/
+.agents/
+.spacefast/
+AGENTS.md
+CLAUDE.md
+PLAN.md
+STATUS.md
+docs/superpowers/
+docs/plans/
+docs/checkpoints/
+coverage/
+*.log

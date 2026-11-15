@@ -23,3 +23,17 @@ jest.config.cjs
 eslint.config.cjs
 *.md
 !readme.txt
+
+.env
+.env.*
+.npmrc
+auth.json
+*.pem
+*.key
+*.p12
+*.pfx
+.codex
+.agents
+.spacefast
+coverage
+*.log
