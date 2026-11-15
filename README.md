@@ -1,6 +1,6 @@
 # Spacefast Block
 
-Show a [Spacefast](https://spacefast.com/) Space in a WordPress page or post, using the block editor.
+An independent WordPress block plugin for [Spacefast](https://spacefast.com/). Show a Space in a WordPress page or post, using the block editor.
 
 ## Description
 
